@@ -1,0 +1,21 @@
+{
+  "name": "Bar Escolar",
+  "short_name": "BarEsc",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#6B4423",
+  "description": "Sistema de bar escolar com pedidos, stocks e dashboards.",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

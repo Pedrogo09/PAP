@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Admin - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <h1 class="mb-4 fw-bold"><i class="fas fa-tachometer-alt"></i> Dashboard Administrativo</h1>
+
+    <!-- ALERTAS - Stock Baixo -->
+    {% if critical_stock %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> ⚠️ Stock Crítico!</h4>
+        <p class="mb-0">Os seguintes produtos têm stock inferior ao mínimo:</p>
+        <div class="mt-2">
+            {% for product in critical_stock %}
+            <span class="badge bg-danger me-2 mb-1">
+                {{ product.name }}: {{ product.stock }} unidades
+            </span>
+            {% endfor %}
+        </div>
+        <hr>
+        <p class="mb-0">
+            <a href="{% url 'bar_app:add_stock_dashboard' %}" class="btn btn-sm btn-danger">
+                <i class="fas fa-plus-circle"></i> Adicionar Stock
+            </a>
+        </p>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-shopping-cart"></i> Pedidos Hoje</h5>
+                    <h2 class="mb-0">{{ total_orders_today }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-clock"></i> Pedidos Pendentes</h5>
+                    <h2 class="mb-0">{{ pending_orders }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-box"></i> Stock Baixo</h5>
+                    <h2 class="mb-0">{{ low_stock_products }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-euro-sign"></i> Saldo Escola</h5>
+                    <h2 class="mb-0">€{{ school_balance }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3"><i class="fas fa-bolt"></i> Ações Rápidas</h5>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{% url 'bar_app:scan_qr' %}" class="btn btn-warning">
+                            <i class="fas fa-qrcode"></i> Scan QR Code
+                        </a>
+                        <a href="{% url 'bar_app:manage_orders' %}" class="btn btn-primary">
+                            <i class="fas fa-clipboard-list"></i> Gerir Pedidos
+                        </a>
+                        <a href="{% url 'bar_app:manage_products' %}" class="btn btn-success">
+                            <i class="fas fa-box"></i> Gerir Produtos
+                        </a>
+                        <a href="{% url 'bar_app:manage_stock' %}" class="btn btn-warning">
+                            <i class="fas fa-warehouse"></i> Gerir Stock
+                        </a>
+                        <a href="{% url 'bar_app:add_stock_dashboard' %}" class="btn btn-info">
+                            <i class="fas fa-plus-circle"></i> Adicionar Stock
+                        </a>
+                        <a href="{% url 'bar_app:finance_summary' %}" class="btn btn-secondary">
+                            <i class="fas fa-chart-bar"></i> Resumo Financeiro
+                        </a>
+                        <a href="{% url 'bar_app:all_reviews' %}" class="btn btn-warning text-dark">
+                            <i class="fas fa-star"></i> Ver Avaliações
+                        </a>
+                        <a href="/admin/" class="btn btn-dark" target="_blank">
+                            <i class="fas fa-cog"></i> Painel Admin Django
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0"><i class="fas fa-chart-line"></i> Vendas</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="?period=7days"
+                                class="btn btn-outline-primary {% if selected_period == '7days' or not selected_period %}active{% endif %}">7
+                                Dias</a>
+                            <a href="?period=30days"
+                                class="btn btn-outline-primary {% if selected_period == '30days' %}active{% endif %}">30
+                                Dias</a>
+                            <a href="?period=best"
+                                class="btn btn-outline-primary {% if selected_period == 'best' %}active{% endif %}">Melhor
+                                Mês</a>
+                        </div>
+                    </div>
+                    <canvas id="salesChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-star"></i> Top 5 Produtos</h5>
+                    <canvas id="topProductsChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pedidos Recentes -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title mb-3"><i class="fas fa-history"></i> Pedidos Recentes</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nº Pedido</th>
+                            <th>Cliente</th>
+                            <th>Data/Hora</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td><strong>{{ order.order_number }}</strong></td>
+                            <td>{{ order.user.get_full_name|default:order.user.username }}</td>
+                            <td>{{ order.scheduled_date|date:"d/m/Y" }} {{ order.scheduled_time|time:"H:i" }}</td>
+                            <td>€{{ order.total_amount }}</td>
+                            <td>
+                                {% if order.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pendente</span>
+                                {% elif order.status == 'ready' %}
+                                <span class="badge bg-success">Pronto</span>
+                                {% elif order.status == 'cancelled' %}
+                                <span class="badge bg-danger">Cancelado</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ order.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'bar_app:order_detail' order.pk %}"
+                                    class="btn btn-sm btn-outline-primary">Ver</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">Nenhum pedido recente</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+    // Gráfico de vendas
+    const ctxSales = document.getElementById('salesChart').getContext('2d');
+    new Chart(ctxSales, {
+        type: 'line',
+        data: {
+            labels: {{ last_7_days| safe }},
+        datasets: [{
+            label: 'Vendas',
+            data: {{ sales_by_day }},
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        tension: 0.4,
+        fill: true,
+            }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { display: true, position: 'top' }
+        },
+        scales: {
+            y: { beginAtZero: true, max: Math.max(...{{ sales_by_day }}, 5) }
+            }
+        }
+    });
+
+    // Gráfico de top produtos
+    const ctxProducts = document.getElementById('topProductsChart').getContext('2d');
+    new Chart(ctxProducts, {
+        type: 'doughnut',
+        data: {
+            labels: {{ top_product_names| safe }},
+        datasets: [{
+            data: {{ top_product_quantities }},
+        backgroundColor: [
+            'rgba(255, 99, 132, 0.8)',
+            'rgba(54, 162, 235, 0.8)',
+            'rgba(255, 206, 86, 0.8)',
+            'rgba(75, 192, 192, 0.8)',
+            'rgba(153, 102, 255, 0.8)',
+        ]
+            }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { display: true, position: 'bottom' }
+        }
+    }
+    });
+</script>
+{% endblock %}

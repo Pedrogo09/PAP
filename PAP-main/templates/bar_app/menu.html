@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block title %}Menu - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="text-center mb-4 fw-bold"> O Nosso Menu</h1>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <form method="get" class="row g-2">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Pesquisar..."
+                            value="{{ search|default_if_none:'' }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select name="category" class="form-select" onchange="this.form.submit()">
+                        <option value="">Todas as Categorias</option>
+                        {% for cat in categories_data %}
+                        {% if cat.is_selected %}
+                        <option value="{{ cat.id }}" selected>{{ cat.name }}</option>
+                        {% else %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="price" class="form-select" onchange="this.form.submit()">
+                        <option value="">Preço: Todos</option>
+                        {% for opt in price_options %}
+                        {% if opt.is_selected %}
+                        <option value="{{ opt.value }}" selected>{{ opt.label }}</option>
+                        {% else %}
+                        <option value="{{ opt.value }}">{{ opt.label }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="sort" class="form-select" onchange="this.form.submit()">
+                        <option value="">Ordenar</option>
+                        {% for opt in sort_options %}
+                        {% if opt.is_selected %}
+                        <option value="{{ opt.value }}" selected>{{ opt.label }}</option>
+                        {% else %}
+                        <option value="{{ opt.value }}">{{ opt.label }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if user.is_authenticated %}
+                <div class="col-md-2">
+                    <div class="btn-group w-100" role="group">
+                        {% if show_favorites %}
+                        <input type="checkbox" name="favorites" value="true" class="btn-check" id="favorites_check"
+                            checked onchange="this.form.submit()">
+                        {% else %}
+                        <input type="checkbox" name="favorites" value="true" class="btn-check" id="favorites_check"
+                            onchange="this.form.submit()">
+                        {% endif %}
+                        <label class="btn btn-outline-warning" for="favorites_check">
+                            <i class="{% if show_favorites %}fas{% else %}far{% endif %} fa-star"></i> Favoritos
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Produtos -->
+    <div class="row g-4">
+        {% for product in products %}
+        <div class="col-md-4 col-lg-3">
+            <div class="card h-100">
+                {% if product.image %}
+                <img src="{{ product.image.url }}" class="card-img-top product-image" alt="{{ product.name }}">
+                {% else %}
+                <div class="bg-light d-flex align-items-center justify-content-center product-image">
+                    <i class="fas fa-utensils fa-3x text-muted"></i>
+                </div>
+                {% endif %}
+                {% if user.is_authenticated %}
+                <div class="position-absolute top-0 end-0 p-2">
+                    <button type="button" class="btn btn-link p-0 text-warning favorite-btn"
+                        data-product-id="{{ product.id }}" style="box-shadow: none;">
+                        <i class="{% if product.id in user_favorites %}fas{% else %}far{% endif %} fa-star fa-lg"></i>
+                    </button>
+                </div>
+                {% endif %}
+                <div class="card-body d-flex flex-column">
+                    <span class="badge bg-secondary mb-2">{{ product.category.name }}</span>
+                    <h5 class="card-title">{{ product.name }}</h5>
+                    <p class="card-text text-muted flex-grow-1">{{ product.description|truncatewords:8 }}</p>
+                    <div class="d-flex justify-content-between align-items-center mt-auto">
+                        <h4 class="text-primary mb-0">€{{ product.price }}</h4>
+                        {% if user.is_authenticated %}
+                        {% if product.is_in_stock %}
+                        <a href="{% url 'bar_app:add_to_cart' product.id %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-cart-plus"></i>
+                        </a>
+                        {% else %}
+                        <span class="badge bg-danger">Sem Stock</span>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    <small class="text-muted mt-2">Stock: {{ product.stock }} unidades</small>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle"></i> Nenhum produto encontrado.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const favoriteButtons = document.querySelectorAll('.favorite-btn');
+
+        favoriteButtons.forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const productId = this.getAttribute('data-product-id');
+                const icon = this.querySelector('i');
+
+                fetch(`/product/${productId}/favorite/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (data.is_favorite) {
+                                icon.classList.remove('far');
+                                icon.classList.add('fas');
+                            } else {
+                                icon.classList.remove('fas');
+                                icon.classList.add('far');
+                                if (new URLSearchParams(window.location.search).get('favorites') === 'true') {
+                                    this.closest('.col-md-4').style.display = 'none';
+                                }
+                            }
+                        }
+                    })
+                    .catch(err => console.error('Erro ao alternar favorito:', err));
+            });
+        });
+    });
+</script>
+{% endblock %}

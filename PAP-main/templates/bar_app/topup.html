@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+
+{% block title %}Carregar Saldo - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container py-2 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8">
+            <!-- Indicador de progresso -->
+            <div class="progress mb-3 mb-md-5" style="height: 20px; font-size: 0.75rem;">
+                <div class="progress-bar {% if step == '1' or step == '2' or step == '3' %}bg-primary{% endif %}" role="progressbar" style="width: {% if step == '1' %}33%{% elif step == '2' %}66%{% else %}100%{% endif %};" aria-valuenow="{% if step == '1' %}33{% elif step == '2' %}66{% else %}100{% endif %}" aria-valuemin="0" aria-valuemax="100">
+                    Passo {{ step }} de 3
+                </div>
+            </div>
+
+            {% if step == '1' %}
+            <!-- PASSO 1: ESCOLHER VALOR -->
+            <div class="card">
+                <div class="card-body p-3 p-md-5">
+                    <div class="text-center mb-3 mb-md-4">
+                        <i class="fas fa-wallet fa-2x fa-md-3x text-primary mb-2 mb-md-3"></i>
+                        <h2 class="fw-bold" style="font-size: 1.5rem;">Passo 1: Escolher Valor</h2>
+                        <p class="text-muted small">Quanto deseja carregar?</p>
+                    </div>
+                    
+                    <div class="balance-card mb-3 mb-md-5 text-center">
+                        <small>Saldo Atual</small>
+                        <h2 class="mb-0" style="font-size: 1.75rem;">€{{ user.balance }}</h2>
+                    </div>
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="amount" value="{{ amount }}">
+                        
+                        <div class="mb-3 mb-md-4">
+                            <label for="amount" class="form-label">Valor a Carregar</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text">€</span>
+                                <input type="number" name="amount" id="amount" class="form-control" step="0.01" min="5" max="100" required placeholder="0.00" autofocus>
+                            </div>
+                            <small class="text-muted d-block mt-1">Mínimo: €5 | Máximo: €100</small>
+                        </div>
+                        
+                        <div class="mb-4 mb-md-5">
+                            <label class="form-label mb-2">Valores Rápidos</label>
+                            <div class="d-grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));">
+                                <button type="button" class="btn btn-sm btn-outline-primary quick-amount" data-amount="10">€10</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary quick-amount" data-amount="20">€20</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary quick-amount" data-amount="30">€30</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary quick-amount" data-amount="50">€50</button>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg" id="nextBtn">
+                                <i class="fas fa-arrow-right"></i> Continuar
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center">
+                        <a href="{% url 'bar_app:profile' %}" class="text-muted small">
+                            <i class="fas fa-arrow-left"></i> Voltar ao Perfil
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {% elif step == '2' %}
+            <!-- PASSO 2: CONFIRMAR DADOS DE PAGAMENTO -->
+            <div class="card">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-credit-card fa-3x text-primary mb-3"></i>
+                        <h2 class="fw-bold">Passo 2: Método de Pagamento</h2>
+                        <p class="text-muted">Como deseja confirmar o pagamento?</p>
+                    </div>
+                    
+                    <div class="alert alert-info" role="alert">
+                        <strong>Valor a carregar:</strong> €{{ amount }}
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Escolha o Método de Pagamento</label>
+                            
+                            <div class="card border mb-3 payment-option" onclick="selectPayment('card')">
+                                <div class="card-body">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_method" id="payment_card" value="card" required>
+                                        <label class="form-check-label w-100" for="payment_card">
+                                            <i class="fas fa-credit-card"></i> <strong>Cartão Escolar</strong>
+                                            <small class="text-muted d-block">Débito direto do cartão pré-carregado</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card border payment-option" onclick="selectPayment('atm')">
+                                <div class="card-body">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_method" id="payment_atm" value="atm" required>
+                                        <label class="form-check-label w-100" for="payment_atm">
+                                            <i class="fas fa-mobile-alt"></i> <strong>Multibanco</strong>
+                                            <small class="text-muted d-block">Gerar referência Multibanco para pagamento</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4" id="cardDetails" style="display: none;">
+                            <label for="card_last_digits" class="form-label">Últimos Dígitos do Cartão</label>
+                            <input type="text" name="card_last_digits" id="card_last_digits" class="form-control" placeholder="Ex: 1234" maxlength="4">
+                            <small class="text-muted">Opcional - para seu registo</small>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-check"></i> Confirmar Pagamento
+                            </button>
+                            <a href="{% url 'bar_app:topup' %}?step=1" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% elif step == '3' %}
+            <!-- PASSO 3: PROCESSAR PAGAMENTO -->
+            <div class="card">
+                <div class="card-body p-5 text-center">
+                    <div class="mb-4">
+                        <div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;">
+                            <span class="visually-hidden">Processando...</span>
+                        </div>
+                    </div>
+                    
+                    <h2 class="fw-bold mb-2">Processando Pagamento...</h2>
+                    <p class="text-muted mb-4">Por favor aguarde enquanto confirmamos o seu pagamento</p>
+                    
+                    <form method="post" id="processForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="step" value="3">
+                    </form>
+                    
+                    <script>
+                        // Simular processamento e submeter formulário após 2 segundos
+                        setTimeout(function() {
+                            document.getElementById('processForm').submit();
+                        }, 2000);
+                    </script>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .balance-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .payment-option {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .payment-option:hover {
+        border-color: #667eea !important;
+        background-color: rgba(102, 126, 234, 0.05);
+    }
+
+    .payment-option input[type="radio"]:checked ~ .form-check-label {
+        color: #667eea;
+    }
+
+    .quick-amount {
+        transition: all 0.2s ease;
+    }
+
+    .quick-amount:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .quick-amount.active {
+        background-color: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+</style>
+
+<script>
+    // Buttons de valores rápidos
+    document.querySelectorAll('.quick-amount').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const amount = this.dataset.amount;
+            document.getElementById('amount').value = amount;
+            
+            // Visual feedback
+            document.querySelectorAll('.quick-amount').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Selecionar método de pagamento
+    function selectPayment(method) {
+        document.getElementById('payment_' + method).checked = true;
+        
+        if (method === 'card') {
+            document.getElementById('cardDetails').style.display = 'block';
+        } else {
+            document.getElementById('cardDetails').style.display = 'none';
+        }
+    }
+
+    // Validar formulário antes de submeter
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const amountInput = document.getElementById('amount');
+                if (amountInput) {
+                    const amount = parseFloat(amountInput.value);
+                    if (amount < 5 || amount > 100) {
+                        e.preventDefault();
+                        alert('Por favor introduza um valor entre €5 e €100');
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

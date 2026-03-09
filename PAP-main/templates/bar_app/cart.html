@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Carrinho - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4 fw-bold"><i class="fas fa-shopping-cart"></i> Meu Carrinho</h1>
+    
+    {% if items %}
+    <div class="row">
+        <div class="col-lg-8">
+            {% for item in items %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2">
+                            {% if item.product.image %}
+                            <img src="{{ item.product.image.url }}" class="img-fluid rounded" alt="{{ item.product.name }}">
+                            {% else %}
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 80px;">
+                                <i class="fas fa-utensils fa-2x text-muted"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <h5>{{ item.product.name }}</h5>
+                            <p class="text-muted mb-0">€{{ item.product.price }} / unidade</p>
+                        </div>
+                        <div class="col-md-3">
+                            <form method="post" action="{% url 'bar_app:update_cart' item.product.id %}" class="d-flex">
+                                {% csrf_token %}
+                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ item.product.stock }}" class="form-control form-control-sm me-2" style="width: 80px;">
+                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-sync"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-2">
+                            <h5 class="text-primary mb-0">€{{ item.subtotal }}</h5>
+                        </div>
+                        <div class="col-md-1">
+                            <a href="{% url 'bar_app:remove_from_cart' item.product.id %}" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Resumo do Pedido</h5>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Subtotal:</span>
+                        <strong>€{{ total }}</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-4">
+                        <h5>Total:</h5>
+                        <h5 class="text-primary">€{{ total }}</h5>
+                    </div>
+                    <a href="{% url 'bar_app:checkout' %}" class="btn btn-primary w-100 mb-2">
+                        <i class="fas fa-credit-card"></i> Finalizar Pedido
+                    </a>
+                    <a href="{% url 'bar_app:menu' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-arrow-left"></i> Continuar a Comprar
+                    </a>
+                </div>
+            </div>
+            
+            <div class="balance-card mt-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small>Saldo Disponível</small>
+                        <h4 class="mb-0">€{{ user.balance }}</h4>
+                    </div>
+                    <a href="{% url 'bar_app:topup' %}" class="btn btn-dark btn-sm">
+                        <i class="fas fa-plus"></i> Carregar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-shopping-cart fa-5x text-muted mb-4"></i>
+        <h3>O seu carrinho está vazio</h3>
+        <p class="text-muted">Adicione produtos ao carrinho para continuar</p>
+        <a href="{% url 'bar_app:menu' %}" class="btn btn-primary">
+            <i class="fas fa-utensils"></i> Ver Menu
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestão de Pedidos - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="fw-bold"><i class="fas fa-clipboard-list"></i> Gestão de Pedidos</h1>
+        <a href="{% url 'bar_app:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+        </a>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Filtrar por Estado</label>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">Todos os Estados</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pendente</option>
+                        <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmado</option>
+                        <option value="preparing" {% if status_filter == 'preparing' %}selected{% endif %}>Em Preparação</option>
+                        <option value="ready" {% if status_filter == 'ready' %}selected{% endif %}>Pronto</option>
+                        <option value="delivered" {% if status_filter == 'delivered' %}selected{% endif %}>Entregue</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Lista de Pedidos -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nº Pedido</th>
+                            <th>Cliente</th>
+                            <th>Tipo</th>
+                            <th>Data/Hora</th>
+                            <th>Total</th>
+                            <th>Pagamento</th>
+                            <th>Estado</th>
+                            <th>Prioridade</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td><strong>{{ order.order_number }}</strong></td>
+                            <td>{{ order.user.get_full_name|default:order.user.username }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ order.user.get_user_type_display }}</span>
+                            </td>
+                            <td>
+                                {{ order.scheduled_date|date:"d/m/Y" }}<br>
+                                <small class="text-muted">{{ order.scheduled_time|time:"H:i" }}</small>
+                            </td>
+                            <td><strong>€{{ order.total_amount }}</strong></td>
+                            <td>
+                                {% if order.payment_method == 'card' %}
+                                <i class="fas fa-credit-card"></i>
+                                {% else %}
+                                <i class="fas fa-university"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pendente</span>
+                                {% elif order.status == 'confirmed' %}
+                                <span class="badge bg-info">Confirmado</span>
+                                {% elif order.status == 'preparing' %}
+                                <span class="badge bg-primary">Em Preparação</span>
+                                {% elif order.status == 'ready' %}
+                                <span class="badge bg-success">Pronto</span>
+                                {% elif order.status == 'delivered' %}
+                                <span class="badge bg-secondary">Entregue</span>
+                                {% else %}
+                                <span class="badge bg-danger">Cancelado</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if order.is_priority %}
+                                <i class="fas fa-star text-warning" title="Prioritário"></i>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'bar_app:order_detail' order.pk %}" class="btn btn-sm btn-outline-primary" title="Ver Detalhes">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if order.status != 'delivered' and order.status != 'cancelled' %}
+                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="openStatusModal({{ order.pk }}, '{{ order.order_number }}', '{{ order.status }}')" title="Alterar Estado">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Nenhum pedido encontrado</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal único fora do loop para evitar duplicações -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusModalTitle">Alterar Estado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" id="statusForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Novo Estado</label>
+                        <select name="status" id="statusSelect" class="form-select" required>
+                            <option value="pending">Pendente</option>
+                            <option value="confirmed">Confirmado</option>
+                            <option value="preparing">Em Preparação</option>
+                            <option value="ready">Pronto</option>
+                            <option value="delivered">Entregue</option>
+                            <option value="cancelled">Cancelado</option>
+                        </select>
+                    </div>
+                    <div class="alert alert-info">
+                        <small>
+                            <strong>Fluxo recomendado:</strong><br>
+                            Pendente → Confirmado → Em Preparação → Pronto → Entregue
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Atualizar Estado</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para controlar o modal único -->
+<script>
+let statusModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    statusModal = new bootstrap.Modal(document.getElementById('statusModal'));
+});
+
+function openStatusModal(orderId, orderNumber, currentStatus) {
+    // Atualizar título
+    document.getElementById('statusModalTitle').textContent = 'Alterar Estado - ' + orderNumber;
+    
+    // Atualizar action do formulário
+    document.getElementById('statusForm').action = '{% url "bar_app:update_order_status" 0 %}'.replace('0', orderId);
+    
+    // Selecionar status atual
+    document.getElementById('statusSelect').value = currentStatus;
+    
+    // Mostrar modal
+    statusModal.show();
+}
+</script>
+
+{% endblock %}

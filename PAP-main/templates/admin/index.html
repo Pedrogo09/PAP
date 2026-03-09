@@ -1,0 +1,13 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  {{ block.super }}
+
+  <div class="app-panel module">
+    <h2>Bar Escolar — Ferramentas</h2>
+    <ul>
+      <li><a href="{% url 'bar_app:finance_summary' %}">Resumo Financeiro</a> (Apenas staff)</li>
+    </ul>
+  </div>
+
+{% endblock %}
