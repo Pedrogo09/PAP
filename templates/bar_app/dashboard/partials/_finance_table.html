@@ -1,0 +1,65 @@
+{% for item in transactions %}
+<tr class="fade-in">
+  <td>
+    <small>{{ item.created_at|date:"d/m/Y H:i" }}</small>
+  </td>
+  <td>
+    <small class="text-muted">{{ item.user_display }}</small>
+  </td>
+  <td>
+    <span class="fw-bold" style="{% if item.tx_type == 'transaction' %}
+        {% if item.tx.transaction_type == 'topup' %}color: #0d6efd;
+        {% elif item.tx.transaction_type == 'payment' %}color: #198754;
+        {% elif item.tx.transaction_type == 'refund' %}color: #fd7e14;
+        {% endif %}
+    {% else %}
+        {% if item.tx.movement_type == 'expense' %}color: #dc3545;
+        {% else %}color: #198754;
+        {% endif %}
+    {% endif %}">
+        {% if item.tx_type == 'transaction' %}
+            {% if item.tx.transaction_type == 'topup' %}<i class="fas fa-arrow-up"></i> Carregamento
+            {% elif item.tx.transaction_type == 'payment' %}<i class="fas fa-shopping-cart"></i> Pagamento
+            {% elif item.tx.transaction_type == 'refund' %}<i class="fas fa-undo"></i> Reembolso
+            {% endif %}
+        {% else %}
+            {% if item.tx.movement_type == 'expense' %}<i class="fas fa-box"></i> Despesa
+            {% else %}<i class="fas fa-plus"></i> Entrada (Receita)
+            {% endif %}
+        {% endif %}
+    </span>
+  </td>
+  <td class="fw-bold">
+    {% if item.tx_type == 'transaction' %}
+        {% if item.tx.transaction_type == 'topup' or item.tx.transaction_type == 'refund' %}
+            <span class="text-success">+{{ item.amount_str }} €</span>
+        {% else %}
+            <span class="text-danger">-{{ item.amount_str }} €</span>
+        {% endif %}
+    {% else %}
+        {% if item.tx.movement_type == 'income' %}
+            <span class="text-success">+{{ item.amount_str }} €</span>
+        {% else %}
+            <span class="text-danger">-{{ item.amount_str }} €</span>
+        {% endif %}
+    {% endif %}
+  </td>
+  <td>
+    <small class="text-muted">{{ item.tx.description|truncatechars:40 }}</small>
+  </td>
+  <td>
+    {% if item.tx.order %}
+        <span class="badge bg-light text-dark border">#{{ item.tx.order.order_number }}</span>
+    {% else %}
+        <span class="text-muted">—</span>
+    {% endif %}
+  </td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="6" class="text-center text-muted py-5">
+    <i class="fas fa-search fa-3x mb-3 opacity-20"></i>
+    <p>Nenhuma transação encontrada.</p>
+  </td>
+</tr>
+{% endfor %}

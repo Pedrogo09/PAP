@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Conta Bloqueada - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger mb-3">
+                <div class="card-header bg-danger text-white">Acesso Bloqueado Temporariamente</div>
+                <div class="card-body text-danger">
+                    <h5 class="card-title">Muitas tentativas falhadas</h5>
+                    <p class="card-text">O seu acesso foi bloqueado devido a múltiplas tentativas de autenticação inválidas. Por favor, tente novamente mais tarde.</p>
+                    <a href="{% url 'bar_app:home' %}" class="btn btn-outline-danger mt-3">Voltar à Página Inicial</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

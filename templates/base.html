@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Bar Escolar{% endblock %}</title>
+    <!-- PWA manifest & theme color -->
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#6B4423">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Bar Escolar">
+    <link rel="apple-touch-icon" href="{% static 'images/icons/icon-192x192.png' %}">
+    <link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Light Theme (Default) */
+            --bg-color: #f8f9fa;
+            --text-color: #333;
+            --card-bg: #fff;
+            --nav-bg: linear-gradient(135deg, #6B4423 0%, #3E2723 100%);
+            --hero-bg: linear-gradient(135deg, #6B4423 0%, #3E2723 100%);
+            --footer-bg: #2c1810;
+            --input-bg: #fff;
+            --input-border: #ccc;
+            --input-text: #333;
+            --table-border: #dee2e6;
+            --table-color: #212529;
+            --table-hover: rgba(0,0,0,.075);
+        }
+        
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .navbar {
+            background: var(--nav-bg);
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff !important;
+            display: flex;
+            align-items: center;
+        }
+        
+        .navbar-brand img {
+            height: 48px;
+            width: 48px;
+            object-fit: cover;
+            background: white;
+            padding: 0;
+            margin-right: 12px;
+            border-radius: 50%;
+            overflow: hidden;
+            clip-path: circle(50%);
+            border: 2px solid #fff;
+            transform: scale(1.2); /* Hide square corners */
+            transition: transform 0.3s ease;
+        }
+        
+        .navbar-brand:hover img {
+            transform: rotate(10deg) scale(1.3);
+        }
+        
+        .navbar-nav .nav-link {
+            color: rgba(255,255,255,0.9) !important;
+            margin: 0 0.5rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .navbar-nav .nav-link:hover {
+            color: #FFD700 !important;
+        }
+        
+        .badge-cart {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #dc3545;
+            border-radius: 50%;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        
+        .hero {
+            background: var(--hero-bg);
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .card:hover .product-image {
+            transform: scale(1.1);
+        }
+
+        .product-image {
+            transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #6B4423 0%, #3E2723 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(107, 68, 35, 0.4);
+        }
+        
+        .footer {
+            background-color: var(--footer-bg);
+            color: white;
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+        
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+        
+        .product-image {
+            height: 200px;
+            width: 100%;
+            object-fit: cover;
+            border-radius: 18px 18px 0 0;
+            display: block;
+        }
+        
+        .balance-card {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #3E2723;
+            border-radius: 15px;
+            padding: 1.5rem;
+            font-weight: 600;
+        }
+        
+        /* Tema para a Tabela */
+        .table {
+            color: var(--table-color);
+            border-color: var(--table-border);
+        }
+        
+        .table-hover>tbody>tr:hover>* {
+            color: var(--table-color);
+            background-color: var(--table-hover);
+        }
+        
+
+        /* Inputs com border visível */
+        .form-control,
+        .form-select,
+        textarea.form-control,
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="number"],
+        input[type="date"],
+        input[type="time"],
+        select {
+            border: 1px solid var(--input-border) !important;
+            background-color: var(--input-bg) !important;
+            color: var(--input-text) !important;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus,
+        .form-select:focus,
+        textarea.form-control:focus,
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus,
+        input[type="time"]:focus,
+        select:focus {
+            border-color: #6B4423 !important;
+            box-shadow: 0 0 0 0.2rem rgba(107, 68, 35, 0.25) !important;
+            background-color: white !important;
+        }
+        
+        /* Placeholder text color */
+        .form-control::placeholder,
+        textarea::placeholder {
+            color: #999;
+        }
+
+        /* Pulse Animation for Low Stock */
+        @keyframes pulse-warning {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+        .pulse-warning {
+            animation: pulse-warning 2s infinite;
+        }
+
+        /* Floating Cart Toast */
+        .cart-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+            background: rgba(30, 30, 30, 0.95);
+            color: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,165,0,0.3);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            animation: slideInUp 0.3s ease-out forwards;
+        }
+        .cart-toast .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        @keyframes slideInUp {
+            from { transform: translateY(100%) scale(0.95); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0) scale(1); opacity: 1; }
+            to { transform: translateX(120%) scale(0.9); opacity: 0; }
+        }
+        @keyframes toastProgress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+        .toast-hide {
+            animation: slideOutRight 0.5s ease-in forwards !important;
+        }
+        .toast-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(to right, #FFD700, #FFA500);
+            width: 100%;
+            border-radius: 0 0 0 12px;
+            animation: toastProgress 4s linear forwards;
+        }
+
+        /* AI Assistant Floating Button */
+        #ai-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #6B4423 0%, #3E2723 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1001;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 2px solid rgba(255,215,0,0.3);
+        }
+        #ai-btn:hover {
+            transform: scale(1.1) rotate(10deg);
+            box-shadow: 0 6px 20px rgba(107, 68, 35, 0.4);
+        }
+        
+        /* AI Chat Window */
+        #ai-chat-window {
+            position: fixed;
+            bottom: 100px;
+            left: 30px;
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            z-index: 1001;
+            overflow: hidden;
+            border: 1px solid rgba(107, 68, 35, 0.1);
+            animation: slideInUp 0.3s ease-out;
+        }
+        .ai-header {
+            background: linear-gradient(135deg, #6B4423 0%, #3E2723 100%);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .ai-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #fdfaf7;
+        }
+        .ai-msg {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .ai-msg.user {
+            align-self: flex-end;
+            background: #6B4423;
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+        .ai-msg.bot {
+            align-self: flex-start;
+            background: #eee;
+            color: #333;
+            border-bottom-left-radius: 2px;
+        }
+        .ai-input-area {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+        .ai-input-area input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 8px 15px;
+            outline: none;
+        }
+        .ai-input-area button {
+            background: #6B4423;
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* PWA Install Banner styling */
+        .pwa-banner {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92%;
+            max-width: 420px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            padding: 12px 16px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            animation: pwaSlideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            display: none;
+        }
+        .pwa-banner-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .pwa-banner-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .pwa-banner-text {
+            flex-grow: 1;
+        }
+        .pwa-banner-text h6 {
+            font-size: 0.9rem;
+            color: #3E2723;
+            margin: 0;
+            font-weight: 700;
+        }
+        .pwa-banner-text small {
+            font-size: 0.72rem;
+            color: #7A7A7A;
+            display: block;
+            margin-top: 2px;
+        }
+        #pwa-install-btn {
+            background: linear-gradient(135deg, #6B4423 0%, #3E2723 100%);
+            border: none;
+            color: #ffffff;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        #pwa-install-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(107, 68, 35, 0.2);
+        }
+        #pwa-close-btn {
+            padding: 4px 8px;
+            font-size: 1.1rem;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        #pwa-close-btn:hover {
+            color: #dc3545 !important;
+        }
+        @keyframes pwaSlideUp {
+            from {
+                transform: translate(-50%, 120px);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, 0);
+                opacity: 1;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'bar_app:home' %}">
+                <img src="{% static 'images/logo.png' %}" alt="Logo">
+                Bar Escolar
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'bar_app:home' %}">Início</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'bar_app:menu' %}">Menu</a>
+                    </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'bar_app:order_list' %}">Meus Pedidos</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'bar_app:cart' %}" style="position: relative;">
+                            <i class="fas fa-shopping-cart"></i> Carrinho
+                            {% if request.session.cart %}
+                            <span class="badge-cart">{{ request.session.cart|length }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'bar_app:profile' %}">
+                            <i class="fas fa-user"></i> {{ user.username }}
+                            {% if user.user_type == 'teacher' %}<i class="fas fa-star text-warning ms-1"></i>{% endif %}
+                        </a>
+                    </li>
+                    {% if user.is_staff or user.user_type in 'admin,staff' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'bar_app:dashboard' %}">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'bar_app:logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'bar_app:login' %}">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'bar_app:register' %}">
+                            <i class="fas fa-user-plus"></i> Registar
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- AI Assistant Floating UI -->
+    {% if user.is_authenticated %}
+    <div id="ai-btn" title="Falar com o Barista AI">
+        <i class="fas fa-robot"></i>
+    </div>
+    
+    <div id="ai-chat-window">
+        <div class="ai-header">
+            <span><i class="fas fa-coffee me-2"></i>Barista AI</span>
+            <button class="btn-close btn-close-white" id="close-ai"></button>
+        </div>
+        <div class="ai-messages" id="ai-messages">
+            <div class="ai-msg bot">
+                Olá {{ user.username }}! Sou o teu assistente inteligente. Como posso ajudar-te hoje?
+            </div>
+        </div>
+        <div class="ai-input-area">
+            <input type="text" id="ai-input" placeholder="Pergunta algo...">
+            <button id="send-ai"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Mensagens -->
+    {% if messages %}
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 1050; display: flex; flex-direction: column; gap: 10px;">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" 
+             {% if 'cart-toast' in message.tags %}style="background: #1e1e1e; color: #fff; border: 1px solid rgba(255,215,0,0.3); margin-bottom: 0;"{% endif %}>
+            {% if 'cart-toast' in message.tags %}<i class="fas fa-check-circle text-success me-2"></i>{% endif %}
+            {{ message|safe }}
+            <button type="button" class="btn-close {% if 'cart-toast' in message.tags %}btn-close-white{% endif %}" data-bs-dismiss="alert"></button>
+            {% if 'cart-toast' in message.tags %}
+            <div class="toast-progress"></div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Conteúdo -->
+    {% block content %}{% endblock %}
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container text-center">
+            <p class="mb-0">&copy; 2025 Bar Escolar Todos os direitos reservados</p>
+        </div>
+    </footer>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-install-banner" class="pwa-banner">
+        <div class="pwa-banner-content">
+            <img src="{% static 'images/logo.png' %}" alt="Logo" class="pwa-banner-logo">
+            <div class="pwa-banner-text">
+                <h6>Instalar Bar Escolar</h6>
+                <small>Adicione um atalho ao seu ecrã inicial</small>
+            </div>
+            <button id="pwa-install-btn" class="btn btn-sm rounded-pill px-3">Instalar</button>
+            <a href="#" id="pwa-close-btn" class="text-muted"><i class="fas fa-times"></i></a>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Scripts de UI (TypeScript) -->
+    <script type="module" src="{% static 'js/dist/ui.js' %}"></script>
+    <script type="module" src="{% static 'js/dist/ai-assistant.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function(reg) { console.log('SW registered', reg); })
+                    .catch(function(err) { console.log('SW registration failed', err); });
+            });
+        }
+
+        // Lógica de Prompt de Instalação PWA
+        let deferredPrompt;
+        const installBanner = document.getElementById('pwa-install-banner');
+        const installBtn = document.getElementById('pwa-install-btn');
+        const closeBtn = document.getElementById('pwa-close-btn');
+
+        // Deteta se já está a correr como aplicação instalada (standalone)
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (!isStandalone) {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Impede o Chrome de mostrar o prompt nativo automaticamente
+                e.preventDefault();
+                // Guarda o evento para poder ser chamado mais tarde
+                deferredPrompt = e;
+                // Mostra o banner de instalação customizado
+                if (installBanner) {
+                    installBanner.style.display = 'block';
+                }
+            });
+        }
+
+        if (installBtn) {
+            installBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (installBanner) {
+                    installBanner.style.display = 'none';
+                }
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('Utilizador aceitou a instalação do PWA');
+                        } else {
+                            console.log('Utilizador rejeitou a instalação do PWA');
+                        }
+                        deferredPrompt = null;
+                    });
+                }
+            });
+        }
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (installBanner) {
+                    installBanner.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

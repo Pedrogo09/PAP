@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block title %}Carregamento Bem-Sucedido - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card success-card">
+                <div class="card-body p-5 text-center">
+                    <!-- Animação de sucesso -->
+                    <div class="success-animation mb-4">
+                        <div class="checkmark-circle">
+                            <div class="checkmark"></div>
+                        </div>
+                    </div>
+                    
+                    <h1 class="fw-bold text-success mb-3">Carregamento Bem-Sucedido!</h1>
+                    <p class="text-muted mb-4">O seu saldo foi atualizado com sucesso</p>
+                    
+                    <!-- Detalhes da transação -->
+                    <div class="transaction-details mb-5">
+                        <div class="detail-row">
+                            <span>Valor Carregado:</span>
+                            <strong class="text-success">€{{ transaction.amount }}</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>Método de Pagamento:</span>
+                            <strong>{{ transaction.get_payment_method_display|default:"Cartão" }}</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>Data da Transação:</span>
+                            <strong>{{ transaction.created_at|date:"d/m/Y H:i" }}</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>ID da Transação:</span>
+                            <strong class="font-monospace">#{{ transaction.id }}</strong>
+                        </div>
+                    </div>
+                    
+                    <!-- Saldo Atual -->
+                    <div class="balance-display mb-5">
+                        <small>Saldo Atual do Cartão</small>
+                        <h2 class="mb-0">€{{ user.balance }}</h2>
+                    </div>
+                    
+                    <!-- Botões de Ação -->
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'bar_app:profile' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-user"></i> Voltar ao Perfil
+                        </a>
+                        <a href="{% url 'bar_app:menu' %}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-shopping-bag"></i> Ir para o Menu
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dica -->
+            <div class="alert alert-info mt-4" role="alert">
+                <i class="fas fa-lightbulb"></i> <strong>Dica:</strong> Guarde este ID de transação para seu registo.
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .success-card {
+        border: none;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border-top: 5px solid #28a745;
+    }
+
+    /* Animação do checkmark */
+    .checkmark-circle {
+        width: 120px;
+        height: 120px;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        animation: scaleIn 0.6s ease-out;
+    }
+
+    .checkmark {
+        width: 40px;
+        height: 30px;
+        border: solid white;
+        border-width: 0 3px 3px 0;
+        transform: rotate(45deg);
+        animation: checkmark 0.6s ease-out 0.3s both;
+    }
+
+    @keyframes scaleIn {
+        from {
+            transform: scale(0);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    @keyframes checkmark {
+        0% {
+            height: 0;
+            width: 0;
+            opacity: 0;
+        }
+        20% {
+            height: 0;
+            width: 10px;
+            opacity: 1;
+        }
+        40% {
+            height: 20px;
+            width: 10px;
+        }
+        100% {
+            height: 30px;
+            width: 40px;
+            opacity: 1;
+        }
+    }
+
+    .success-animation {
+        animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .transaction-details {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 2rem;
+        text-align: left;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-row span {
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    .balance-display {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .font-monospace {
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+    }
+
+    h1, .fw-bold {
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+</style>
+
+<script>
+    // Efeito confete (opcional)
+    document.addEventListener('DOMContentLoaded', function() {
+        // Reproduzir som de sucesso (se disponível)
+        // Adicionar confete
+        for (let i = 0; i < 50; i++) {
+            createConfetti();
+        }
+    });
+
+    function createConfetti() {
+        const confetti = document.createElement('div');
+        confetti.style.position = 'fixed';
+        confetti.style.width = '10px';
+        confetti.style.height = '10px';
+        confetti.style.backgroundColor = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'][Math.floor(Math.random() * 5)];
+        confetti.style.left = Math.random() * window.innerWidth + 'px';
+        confetti.style.top = '-10px';
+        confetti.style.borderRadius = '50%';
+        confetti.style.zIndex = '9999';
+        confetti.style.pointerEvents = 'none';
+        
+        document.body.appendChild(confetti);
+        
+        let top = -10;
+        let left = parseFloat(confetti.style.left);
+        let velocity = Math.random() * 3 + 2;
+        let angle = Math.random() * Math.PI * 2;
+        
+        const animate = () => {
+            top += velocity;
+            left += Math.cos(angle) * 2;
+            confetti.style.top = top + 'px';
+            confetti.style.left = left + 'px';
+            confetti.style.opacity = 1 - (top / window.innerHeight);
+            
+            if (top < window.innerHeight) {
+                requestAnimationFrame(animate);
+            } else {
+                confetti.remove();
+            }
+        };
+        
+        animate();
+    }
+</script>
+{% endblock %}

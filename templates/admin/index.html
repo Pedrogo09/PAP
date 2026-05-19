@@ -1,0 +1,241 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static finance_tags %}
+
+{% block content_title %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid pt-3">
+    <div class="row align-items-center mb-4">
+        <div class="col-auto">
+            <h1 class="h3 mb-0 fw-bold"><i class="fas fa-chart-line text-primary me-2"></i>Dashboard Financeiro</h1>
+        </div>
+        <div class="col text-end">
+            <div class="btn-group shadow-sm">
+                <a href="{% url 'bar_app:export_transactions_csv' %}" class="btn btn-success fw-bold px-4 rounded-start-pill">
+                    <i class="fas fa-file-excel me-1"></i> Excel
+                </a>
+                <a href="{% url 'bar_app:export_transactions_pdf' %}" class="btn btn-danger fw-bold px-4 rounded-end-pill">
+                    <i class="fas fa-file-pdf me-1"></i> PDF
+                </a>
+            </div>
+            <a href="{% url 'bar_app:add_stock_dashboard' %}" class="btn btn-primary fw-bold px-4 ms-3 rounded-pill shadow-sm">
+                <i class="fas fa-plus-circle me-1"></i> Stock
+            </a>
+        </div>
+    </div>
+
+    {% render_finance_cards %}
+
+    <div class="row mb-5">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-history text-primary"></i> Transações Recentes</h5>
+                    <div class="btn-group p-1 bg-light rounded-pill shadow-inner">
+                        <button class="btn btn-sm btn-primary rounded-pill px-3 filter-btn" data-filter="all">Todas</button>
+                        <button class="btn btn-sm btn-link text-muted rounded-pill px-3 filter-btn" data-filter="payment">Vendas</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="admin-tx-table">
+                            <thead class="bg-light small text-uppercase">
+                                <tr>
+                                    <th class="ps-4">Data</th>
+                                    <th>Utilizador</th>
+                                    <th>Tipo</th>
+                                    <th>Montante</th>
+                                    <th>Descrição</th>
+                                    <th class="pe-4">Pedido</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-tx-body">
+                                <tr class="text-center py-5">
+                                    <td colspan="4"><i class="fas fa-spinner fa-spin"></i> Carregando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mt-4 mt-lg-0">
+             <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-chart-pie text-secondary"></i> Distribuição</h5>
+                </div>
+                <div class="card-body d-flex align-items-start justify-content-center" style="min-height: 320px;">
+                    <canvas id="adminFinancialChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="my-5 border-light">
+    
+    <!-- Rest of the Django Admin interface -->
+    <div id="content-main">
+        {{ block.super }}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Lógica das Transações
+        const fetchRecentTxs = (filter = 'all') => {
+            const tbody = document.getElementById('admin-tx-body');
+            if(!tbody) return;
+            tbody.style.opacity = '0.5';
+            
+            fetch(`/dashboard/finance/?tx_type=${filter}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.text())
+            .then(html => {
+                tbody.innerHTML = html;
+                tbody.style.opacity = '1';
+            });
+        };
+
+        fetchRecentTxs();
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const filter = this.dataset.filter;
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-link', 'text-muted');
+                });
+                this.classList.remove('btn-link', 'text-muted');
+                this.classList.add('btn-primary');
+                fetchRecentTxs(filter);
+            });
+        });
+
+        // 2. Lógica do Gráfico (Limpa e única)
+        {% get_finance_data as data %}
+        const sales = parseFloat("{{ data.total_sales|safe }}".replace(',', '.'));
+        const deposits = parseFloat("{{ data.total_deposits|safe }}".replace(',', '.'));
+        const expenses = parseFloat("{{ data.total_expenses|safe }}".replace(',', '.'));
+        const refunds = parseFloat("{{ data.total_refunds|safe }}".replace(',', '.'));
+
+        const totalData = sales + deposits + expenses + refunds;
+        const getPercentage = (value) => {
+            if (totalData === 0) return '0%';
+            return ((value / totalData) * 100).toFixed(1) + '%';
+        };
+
+        const initChart = () => {
+            const canvas = document.getElementById('adminFinancialChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Destruir instância anterior
+            const existingChart = Chart.getChart("adminFinancialChart");
+            if (existingChart) {
+                existingChart.destroy();
+            }
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        `Vendas (${getPercentage(sales)})`, 
+                        `Depósitos (${getPercentage(deposits)})`, 
+                        `Despesas (${getPercentage(expenses)})`, 
+                        `Reembolsos (${getPercentage(refunds)})`
+                    ],
+                    datasets: [{
+                        data: [sales, deposits, expenses, refunds],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f43f5e', '#f59e0b'],
+                        hoverOffset: 15,
+                        borderWidth: 0,
+                        cutout: '85%',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    layout: { 
+                        padding: {
+                            top: 0,
+                            bottom: 10,
+                            left: 10,
+                            right: 10
+                        } 
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: { size: 11, weight: '600', family: "'Inter', sans-serif" },
+                                color: '#4b5563'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed !== null) {
+                                        label += new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(context.parsed);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'centerText',
+                    beforeDraw: function(chart) {
+                        const { chartArea, ctx } = chart;
+                        if (!chartArea) return;
+                        
+                        ctx.restore();
+                        const centerX = (chartArea.left + chartArea.right) / 2;
+                        const centerY = (chartArea.top + chartArea.bottom) / 2;
+                        const baseSize = Math.min(chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+
+                        // Montante
+                        const fontSize = Math.floor(baseSize / 8);
+                        ctx.font = `bold ${fontSize}px 'Inter', sans-serif`;
+                        ctx.textBaseline = "middle";
+                        ctx.textAlign = "center";
+                        ctx.fillStyle = "#111827";
+                        const total = (sales + deposits - expenses - refunds).toFixed(2);
+                        const text = "€" + total.replace('.', ',');
+                        ctx.fillText(text, centerX, centerY - (fontSize / 4) - 5);
+
+                        // Rótulo
+                        const labelSize = Math.floor(baseSize / 16);
+                        ctx.font = `600 ${labelSize}px 'Inter', sans-serif`;
+                        ctx.fillStyle = "#6b7280";
+                        ctx.fillText("Saldo Real", centerX, centerY + (fontSize / 1.2));
+                        ctx.save();
+                    }
+                }]
+            });
+        };
+
+        // Inicializar com pequeno atraso para estabilidade
+        setTimeout(initChart, 300);
+    });
+</script>
+
+<style>
+    .bg-light-blue { background-color: #f0f7ff; }
+    .shadow-inner { box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+    .rounded-4 { border-radius: 1rem !important; }
+    #content-main h2 { font-size: 1.2rem; font-weight: 700; color: #666; margin-top: 2rem; }
+    .module table { border-radius: 0.5rem; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+    .filter-btn.btn-link { text-decoration: none; }
+</style>
+{% endblock %}

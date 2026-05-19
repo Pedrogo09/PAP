@@ -1,0 +1,52 @@
+{% for product in products %}
+<div class="col-md-4 col-lg-3 product-card-container">
+    <div class="card h-100 pb-2">
+        {% if product.image %}
+        <img src="{{ product.image.url }}" class="card-img-top product-image" alt="{{ product.name }}">
+        {% else %}
+        <div class="bg-light d-flex align-items-center justify-content-center product-image">
+            <i class="fas fa-utensils fa-3x text-muted"></i>
+        </div>
+        {% endif %}
+        {% if user.is_authenticated %}
+        <div class="position-absolute top-0 end-0 p-2">
+            <button type="button" class="btn btn-link p-0 text-warning favorite-btn"
+                data-product-id="{{ product.id }}" style="box-shadow: none;">
+                <i class="{% if product.id in user_favorites %}fas{% else %}far{% endif %} fa-star fa-lg"></i>
+            </button>
+        </div>
+        {% endif %}
+        <div class="card-body d-flex flex-column">
+            <span class="badge bg-secondary mb-2">{{ product.category.name }}</span>
+            <h5 class="card-title">{{ product.name }}</h5>
+            <p class="card-text text-muted flex-grow-1">{{ product.description|truncatewords:8 }}</p>
+            <div class="d-flex justify-content-between align-items-center mt-auto">
+                <h4 class="text-primary mb-0">€{{ product.current_price }}</h4>
+                {% if user.is_authenticated %}
+                {% if product.is_in_stock %}
+                <button type="button" class="btn btn-primary btn-sm add-to-cart-btn" data-product-id="{{ product.id }}">
+                    <i class="fas fa-cart-plus"></i>
+                </button>
+                {% else %}
+                <span class="badge bg-danger">Sem Stock</span>
+                {% endif %}
+                {% endif %}
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <small class="text-muted">Stock: {{ product.stock }} unidades</small>
+                {% if product.stock > 0 and product.stock <= 10 %}
+                <span class="badge bg-warning text-dark pulse-warning"><i class="fas fa-exclamation-circle"></i> Últimas Unidades</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="col-12 py-5">
+    <div class="text-center py-5">
+        <i class="fas fa-search fa-4x text-muted mb-3"></i>
+        <h3 class="text-muted">Nenhum produto encontrado</h3>
+        <p>Tenta ajustar os teus filtros ou pesquisa.</p>
+    </div>
+</div>
+{% endfor %}
