@@ -51,6 +51,10 @@ echo Efetuando commit...
 git commit -m "%commit_msg%"
 
 echo.
+echo A sincronizar alteracoes do GitHub (pull)...
+git pull --rebase origin main
+
+echo.
 echo A enviar para o GitHub (ramo: main)...
 git push -u origin main
 
