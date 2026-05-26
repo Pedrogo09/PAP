@@ -14,6 +14,7 @@
     clip-path: circle(50%) !important;
 }
 
+<<<<<<< HEAD
 .user-panel .image img {
     border-radius: 50% !important;
     width: 90px !important;
@@ -22,6 +23,58 @@
     background: #fff !important;
     clip-path: circle(50%) !important;
     transform: scale(1.3) !important;
+=======
+.user-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    padding-top: 15px !important;
+    padding-bottom: 10px !important;
+}
+
+.user-panel .image {
+    padding-left: 0 !important;
+    width: 100% !important;
+    margin-bottom: 8px !important;
+}
+
+.user-panel .image img {
+    border-radius: 50% !important;
+    width: 65px !important;
+    height: 65px !important;
+    object-fit: cover !important;
+    background: #fff !important;
+    clip-path: circle(50%) !important;
+    transform: scale(1.15) !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25) !important;
+    border: 2px solid #fff !important;
+}
+
+.user-panel .info {
+    padding-left: 0 !important;
+    width: 100% !important;
+    white-space: normal !important;
+}
+
+.user-panel .info a {
+    font-weight: 700 !important;
+    color: #fff !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+    font-size: 0.85rem !important;
+}
+
+/* Hide or shrink logo when sidebar is collapsed */
+.sidebar-collapse .user-panel .image img {
+    width: 32px !important;
+    height: 32px !important;
+    transform: scale(1) !important;
+}
+
+.sidebar-collapse .user-panel .info {
+    display: none !important;
+>>>>>>> c69d373 (Logo e IA)
 }
 
 /* 2. LOGIN PAGE & BACKGROUND */
