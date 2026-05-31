@@ -15,14 +15,15 @@ Sistema de gestão de bar escolar desenvolvido em **Django 5.2**, com suporte a 
 
 ## 🚀 Como Executar (forma rápida)
 
-1. **Executar os bat na ordem seguinte**
+1. **Executar os .bat na ordem seguinte**
    ```powershell
    .\start.bat
    .\atualizar_github.bat
    ```
 
+---
 
-## 🚀 Como Executar
+## 🚀 Como Executar (sem utilizar scripts)
 
 1. **Ativar Ambiente Virtual:**
    ```powershell
