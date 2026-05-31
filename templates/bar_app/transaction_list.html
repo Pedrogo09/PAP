@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Transações - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4 fw-bold"><i class="fas fa-money-bill-wave"></i> Histórico de Transações</h1>
+    
+    <div class="balance-card mb-4 text-center">
+        <small>Saldo Atual</small>
+        <h2 class="mb-0">€{{ user.balance }}</h2>
+    </div>
+    
+    {% if transactions %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Descrição</th>
+                            <th>Pedido</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                {% if transaction.transaction_type == 'topup' %}
+                                <span class="badge bg-success">Carregamento</span>
+                                {% elif transaction.transaction_type == 'payment' %}
+                                <span class="badge bg-danger">Pagamento</span>
+                                {% else %}
+                                <span class="badge bg-info">Reembolso</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ transaction.description }}</td>
+                            <td>
+                                {% if transaction.order %}
+                                <a href="{% url 'bar_app:order_detail' transaction.order.pk %}">
+                                    {{ transaction.order.order_number }}
+                                </a>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if transaction.transaction_type == 'topup' %}
+                                <strong class="text-success">+€{{ transaction.amount }}</strong>
+                                {% else %}
+                                <strong class="text-danger">-€{{ transaction.amount }}</strong>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-money-bill-wave fa-5x text-muted mb-4"></i>
+        <h3>Sem transações</h3>
+        <p class="text-muted">Ainda não realizou nenhuma transação</p>
+        <a href="{% url 'bar_app:topup' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Carregar Saldo
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

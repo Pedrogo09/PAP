@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4 fw-bold"><i class="fas fa-credit-card"></i> Finalizar Pedido</h1>
+    
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Detalhes do Pedido</h5>
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Erros no formulário:</strong>
+                            <ul class="mb-0">
+                                {% for field, errors in form.errors.items %}
+                                    {% for err in errors %}
+                                        <li>{{ err }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    
+                    <form method="post" id="checkoutForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="scheduled_date" class="form-label">Data de Levantamento</label>
+                            <input type="date" name="scheduled_date" id="scheduled_date" class="form-control" required min="{{ today }}" value="{{ default_date }}">
+                            <small id="dateWarning" class="text-danger d-none">
+                                <i class="fas fa-exclamation-circle"></i> O bar está fechado neste dia!
+                            </small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="mb-3">
+                                    <label for="scheduled_hour" class="form-label">Hora</label>
+                                    <select name="scheduled_hour" id="scheduled_hour" class="form-select" required>
+                                        <option value="">Selecione a hora...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="mb-3">
+                                    <label for="scheduled_minute" class="form-label">Minuto</label>
+                                    <select name="scheduled_minute" id="scheduled_minute" class="form-select" required>
+                                        <option value="">Selecione o minuto...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" name="scheduled_time" id="scheduled_time" value="">
+                        <small id="timeWarning" class="text-danger d-none">
+                            <i class="fas fa-exclamation-circle"></i> Este horário não está disponível. Horários: <span id="availableHours"></span>
+                        </small>
+                        
+                        <div class="mb-3">
+                            <label for="payment_method" class="form-label">Método de Pagamento</label>
+                            <select name="payment_method" id="payment_method" class="form-select" required onchange="updatePaymentInfo()">
+                                <option value="card">Cartão Escolar</option>
+                                <option value="atm">Multibanco</option>
+                            </select>
+                            <small id="paymentInfo" class="text-muted">Débito direto do seu saldo do cartão escolar</small>
+                        </div>
+                        
+                        <!-- Informação Multibanco -->
+                        <div id="multibanco_info" class="alert alert-info d-none" role="alert">
+                            <h6 class="alert-heading"><i class="fas fa-mobile-alt"></i> Referência Multibanco</h6>
+                            <p class="mb-2">Receberá uma referência Multibanco única para confirmar o pagamento:</p>
+                            <div class="bg-white p-3 rounded border text-center mb-2">
+                                <p class="mb-0"><strong>Entidade:</strong> 12345</p>
+                                <p class="mb-0"><strong>Referência:</strong> <span id="reference_number">545054{{ order_id }}</span></p>
+                                <p class="mb-0"><strong>Valor:</strong> €{{ total }}</p>
+                            </div>
+                            <p class="text-muted small mb-0">
+                                <i class="fas fa-info-circle"></i> Pode pagar via caixa multibanco, app bancária ou online banking
+                            </p>
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" id="confirm_atm">
+                                <label class="form-check-label" for="confirm_atm">
+                                    Confirmo que vou pagar por Multibanco usando a referência acima
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notas (opcional)</label>
+                            <textarea name="notes" id="notes" class="form-control" rows="3" placeholder="Alguma observação especial? (sem sal, sem cebola, etc)"></textarea>
+                        </div>
+                        
+                        {% if user.is_priority_user %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-star"></i> <strong>Pedido Prioritário</strong> - Como {{ user.get_user_type_display }}, o seu pedido terá prioridade na fila.
+                        </div>
+                        {% endif %}
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">
+                            <i class="fas fa-check"></i> Confirmar Pedido
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-5">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4"><i class="fas fa-shopping-bag"></i> Resumo do Pedido</h5>
+                    
+                    <div class="order-items">
+                        {% for item in items %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <div>
+                                <div>{{ item.quantity }}x <strong>{{ item.product.name }}</strong></div>
+                                <small class="text-muted">€{{ item.current_price }} x {{ item.quantity }}</small>
+                            </div>
+                            <strong>€{{ item.subtotal }}</strong>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <hr class="my-3">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0">Total:</h5>
+                        <h4 class="text-primary mb-0">€{{ total }}</h4>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Saldo e Validação -->
+            <div class="card {% if user.balance < total %}border-danger{% else %}border-success{% endif %}">
+                <div class="card-body">
+                    <h6 class="card-title mb-3"><i class="fas fa-wallet"></i> Saldo da Conta</h6>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-baseline mb-2">
+                            <span class="text-muted">Saldo Atual:</span>
+                            <h5 class="mb-0">€{{ user.balance }}</h5>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-baseline mb-2">
+                            <span class="text-muted">Total do Pedido:</span>
+                            <h5 class="mb-0">€{{ total }}</h5>
+                        </div>
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar {% if user.balance >= total %}bg-success{% else %}bg-danger{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {{ user.balance|add:0 }}%; max-width: 100%;" 
+                                 aria-valuenow="{{ user.balance }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="{{ total|add:50 }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if user.balance >= total %}
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle"></i> Saldo suficiente
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger mb-0">
+                        <i class="fas fa-exclamation-circle"></i> 
+                        <strong>Saldo insuficiente!</strong><br>
+                        Faltam: €{{ total|add:user.balance|add:0|floatformat:2 }}<br>
+                        <a href="{% url 'bar_app:topup' %}" class="btn btn-danger btn-sm mt-2">
+                            <i class="fas fa-plus"></i> Carregar Saldo Agora
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Dados dos horários por dia
+    const schedules = JSON.parse('{{ schedule_json|safe }}');
+    const dayNames = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+    
+    // Preencher selects de hora e minuto
+    function populateTimeSelects() {
+        const hourSelect = document.getElementById('scheduled_hour');
+        const minuteSelect = document.getElementById('scheduled_minute');
+        
+        // Limpar opções existentes
+        hourSelect.innerHTML = '<option value="">Selecione a hora...</option>';
+        minuteSelect.innerHTML = '<option value="">Selecione o minuto...</option>';
+        
+        // Adicionar horas (0-23)
+        for (let h = 0; h < 24; h++) {
+            const option = document.createElement('option');
+            option.value = String(h).padStart(2, '0');
+            option.textContent = String(h).padStart(2, '0');
+            hourSelect.appendChild(option);
+        }
+        
+        // Adicionar minutos (0-59)
+        for (let m = 0; m < 60; m++) {
+            const option = document.createElement('option');
+            option.value = String(m).padStart(2, '0');
+            option.textContent = String(m).padStart(2, '0');
+            minuteSelect.appendChild(option);
+        }
+    }
+    
+    // Validar data e hora quando mudam
+    function validateDateTime() {
+        const dateInput = document.getElementById('scheduled_date').value;
+        const hour = document.getElementById('scheduled_hour').value;
+        const minute = document.getElementById('scheduled_minute').value;
+        
+        const dateWarning = document.getElementById('dateWarning');
+        const timeWarning = document.getElementById('timeWarning');
+        const timeHiddenInput = document.getElementById('scheduled_time');
+        
+        if (!dateInput) {
+            dateWarning.classList.add('d-none');
+            timeWarning.classList.add('d-none');
+            return;
+        }
+        
+        // Obter dia da semana (0=segunda, 6=domingo)
+        const date = new Date(dateInput);
+        const dayOfWeek = (date.getDay() + 6) % 7; // Converter de JS (0=domingo) para Django (0=segunda)
+        
+        const schedule = schedules[dayOfWeek];
+        
+        // Verificar se o dia está aberto
+        if (!schedule.is_open) {
+            dateWarning.classList.remove('d-none');
+            timeWarning.classList.add('d-none');
+            timeHiddenInput.value = '';
+            return;
+        } else {
+            dateWarning.classList.add('d-none');
+        }
+        
+        // Verificar hora se preenchida
+        if (hour && minute) {
+            const time = `${hour}:${minute}`;
+            const openTime = schedule.opening_time;
+            const closeTime = schedule.closing_time;
+            
+            if (time >= openTime && time <= closeTime) {
+                timeWarning.classList.add('d-none');
+                timeHiddenInput.value = time;
+            } else {
+                timeWarning.classList.remove('d-none');
+                document.getElementById('availableHours').textContent = `${openTime} às ${closeTime}`;
+                timeHiddenInput.value = '';
+            }
+        } else {
+            timeWarning.classList.add('d-none');
+            timeHiddenInput.value = '';
+        }
+    }
+    
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', function() {
+        populateTimeSelects();
+        
+        // Event listeners
+        document.getElementById('scheduled_date').addEventListener('change', validateDateTime);
+        document.getElementById('scheduled_hour').addEventListener('change', validateDateTime);
+        document.getElementById('scheduled_minute').addEventListener('change', validateDateTime);
+        
+        // Set minimum date to today (Removido pois já é definido pelo Django)
+        // document.getElementById('scheduled_date').min = new Date().toISOString().split('T')[0];
+    });
+    
+    // Update payment info based on method
+    function updatePaymentInfo() {
+        const method = document.getElementById('payment_method').value;
+        const info = document.getElementById('paymentInfo');
+        const multibancoInfo = document.getElementById('multibanco_info');
+        
+        if (method === 'card') {
+            info.textContent = 'Débito direto do seu saldo do cartão escolar';
+            multibancoInfo.classList.add('d-none');
+        } else {
+            info.textContent = 'Receberá referência Multibanco para pagamento';
+            multibancoInfo.classList.remove('d-none');
+        }
+    }
+    
+    // Validar formulário antes de submeter
+    document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+        const balance = parseFloat('{{ user.balance }}');
+        const total = parseFloat('{{ total }}');
+        const method = document.getElementById('payment_method').value;
+        const confirmCheckbox = document.getElementById('confirm_atm');
+        const dateInput = document.getElementById('scheduled_date').value;
+        const hour = document.getElementById('scheduled_hour').value;
+        const minute = document.getElementById('scheduled_minute').value;
+        const dateWarning = document.getElementById('dateWarning');
+        const timeWarning = document.getElementById('timeWarning');
+        
+        // Validar se a data foi preenchida
+        if (!dateInput) {
+            e.preventDefault();
+            alert('Por favor, selecione a data de levantamento.');
+            document.getElementById('scheduled_date').focus();
+            return false;
+        }
+        
+        // Validar se o dia está aberto
+        if (!dateWarning.classList.contains('d-none')) {
+            e.preventDefault();
+            alert('O bar está fechado neste dia. Por favor, escolha outro dia.');
+            return false;
+        }
+        
+        // Validar se a hora e minuto foram preenchidos
+        if (!hour) {
+            e.preventDefault();
+            alert('Por favor, selecione a hora de levantamento.');
+            document.getElementById('scheduled_hour').focus();
+            return false;
+        }
+        
+        if (!minute) {
+            e.preventDefault();
+            alert('Por favor, selecione o minuto de levantamento.');
+            document.getElementById('scheduled_minute').focus();
+            return false;
+        }
+        
+        // Validar se a hora está disponível
+        if (!timeWarning.classList.contains('d-none')) {
+            e.preventDefault();
+            const availableText = document.getElementById('availableHours').textContent;
+            alert(`Este horário não está disponível. ${availableText}`);
+            return false;
+        }
+        
+        // Validar método de pagamento
+        if (method === 'card') {
+            if (balance < total) {
+                e.preventDefault();
+                alert(`Saldo insuficiente! Saldo: €${balance.toFixed(2)}, Total: €${total.toFixed(2)}`);
+                return false;
+            }
+        } else if (method === 'atm') {
+            if (!confirmCheckbox.checked) {
+                e.preventDefault();
+                alert('Por favor, confirme que vai pagar por Multibanco.');
+                confirmCheckbox.focus();
+                return false;
+            }
+        }
+    });
+</script>
+{% endblock %}

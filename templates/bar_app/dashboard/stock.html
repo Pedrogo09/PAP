@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Gerir Stock - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <h1 class="mb-4 fw-bold"><i class="fas fa-warehouse"></i> Gestão de Stock</h1>
+
+    <!-- Produtos com Stock Baixo -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <!-- Só mostrar alerta se existirem produtos com stock abaixo do mínimo -->
+            {% if low_stock_products %}
+            <h5 class="card-title mb-3 text-danger"><i class="fas fa-exclamation-triangle"></i> Produtos com Stock Baixo
+            </h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Stock Atual</th>
+                            <th>Stock Mínimo</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in low_stock_products %}
+                        <tr class="table-warning">
+                            <td>{{ product.name }}</td>
+                            <td class="fw-bold text-danger">{{ product.stock }}</td>
+                            <td>{{ product.min_stock }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                    data-bs-target="#replenishModal"
+                                    onclick="setProductReplenish({{ product.id }}, '{{ product.name }}')">
+                                    <i class="fas fa-plus"></i> Repor Stock
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> Todos os produtos têm stock adequado!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Movimentos de Stock Recentes -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title mb-3"><i class="fas fa-history"></i> Movimentos Recentes</h5>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Produto</th>
+                            <th>Tipo</th>
+                            <th>Quantidade</th>
+                            <th>Motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movement in recent_movements %}
+                        <tr>
+                            <td>{{ movement.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>{{ movement.product.name }}</td>
+                            <td>
+                                {% if movement.movement_type == 'in' %}
+                                <span class="badge bg-success">Entrada</span>
+                                {% else %}
+                                <span class="badge bg-danger">Saída</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ movement.quantity }}</td>
+                            <td>{{ movement.reason }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">Nenhum movimento registado</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Repor Stock -->
+<div class="modal fade" id="replenishModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Repor Stock - <span id="productNameDisplay"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="replenishForm" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Quantidade a Adicionar</label>
+                        <input type="number" id="quantityInput" name="quantity" class="form-control" min="1" max="999"
+                            required placeholder="Ex: 50">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Confirmar
+                        Reposição</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentProductId = null;
+
+    function setProductReplenish(productId, productName) {
+        currentProductId = productId;
+        document.getElementById('productNameDisplay').textContent = productName;
+        document.getElementById('quantityInput').value = '';
+        document.getElementById('replenishForm').action = `/dashboard/stock/${productId}/replenish/`;
+    }
+
+    document.getElementById('replenishForm').addEventListener('submit', function (e) {
+        const quantity = document.getElementById('quantityInput').value;
+        if (!quantity || quantity <= 0) {
+            e.preventDefault();
+            alert('Introduza uma quantidade válida!');
+        }
+    });
+</script>
+{% endblock %}

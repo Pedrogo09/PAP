@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block title %}Perfil - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4 fw-bold"><i class="fas fa-user"></i> Meu Perfil</h1>
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-circle fa-5x text-primary mb-3"></i>
+                    <h4>{{ user.get_full_name }}</h4>
+                    <p class="text-muted">@{{ user.username }}</p>
+                    <span class="badge bg-primary">{{ user.get_user_type_display }}</span>
+                    {% if user.user_type == 'student' %}
+                    <div class="mt-2">
+                        <small class="text-muted d-block">Escalão ASE:</small>
+                        <span class="badge bg-info">{{ user.get_escalao_display }}</span>
+                    </div>
+                    {% endif %}
+                    {% if user.is_priority_user %}
+                    <span class="badge bg-warning text-dark"><i class="fas fa-star"></i> Prioritário</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="balance-card mb-4">
+                <small>Saldo do Cartão</small>
+                <h3 class="mb-3">€{{ user.balance }}</h3>
+                <a href="{% url 'bar_app:topup' %}" class="btn btn-dark w-100">
+                    <i class="fas fa-plus"></i> Carregar Saldo
+                </a>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="fas fa-info-circle"></i> Informações</h6>
+                    <p class="mb-2"><strong>Email:</strong> {{ user.email }}</p>
+                    <p class="mb-2"><strong>Telefone:</strong> {{ user.phone|default:"Não definido" }}</p>
+                    <p class="mb-0"><strong>Membro desde:</strong> {{ user.created_at|date:"d/m/Y" }}</p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3" style="color: #6B4423;"><i class="fas fa-user-edit"></i> Editar Perfil</h5>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold mb-1">Nome</label>
+                            {{ form.first_name }}
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold mb-1">Apelido</label>
+                            {{ form.last_name }}
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-bold mb-1">Telefone</label>
+                            {{ form.phone }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold mb-1">Alergias / Intolerâncias</label>
+                            <div class="p-2 border rounded" style="max-height: 160px; overflow-y: auto; background-color: var(--bg-color);">
+                                {% for checkbox in form.selected_allergens %}
+                                    <div class="form-check mb-1">
+                                        {{ checkbox.tag }}
+                                        <label class="form-check-label small ms-1" for="{{ checkbox.id_for_label }}">
+                                            {{ checkbox.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.72rem; line-height: 1.2;">
+                                Os produtos do menu com estes ingredientes serão assinalados com um aviso de segurança.
+                            </small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 btn-sm py-2">
+                            <i class="fas fa-save me-1"></i> Guardar Perfil
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h6 class="card-title mb-3"><i class="fas fa-qrcode"></i> A minha Identificação</h6>
+                    <div id="qrcode" class="d-flex justify-content-center mb-3"></div>
+                    <p class="small text-muted mb-0">Mostre este código no bar para identificação rápida.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4"><i class="fas fa-shopping-bag"></i> Pedidos Recentes</h5>
+
+                    {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Nº Pedido</th>
+                                    <th>Data</th>
+                                    <th>Total</th>
+                                    <th>Estado</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td><strong>{{ order.order_number }}</strong></td>
+                                    <td>{{ order.scheduled_date|date:"d/m/Y" }} {{ order.scheduled_time|time:"H:i" }}
+                                    </td>
+                                    <td>€{{ order.total_amount }}</td>
+                                    <td>
+                                        {% if order.status == 'pending' %}
+                                        <span class="badge bg-warning">Pendente</span>
+                                        {% elif order.status == 'confirmed' %}
+                                        <span class="badge bg-info">Confirmado</span>
+                                        {% elif order.status == 'preparing' %}
+                                        <span class="badge bg-primary">Em Preparação</span>
+                                        {% elif order.status == 'ready' %}
+                                        <span class="badge bg-success">Pronto</span>
+                                        {% elif order.status == 'delivered' %}
+                                        <span class="badge bg-secondary">Entregue</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Cancelado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'bar_app:order_detail' order.pk %}"
+                                            class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="{% url 'bar_app:order_list' %}" class="btn btn-outline-primary">Ver Todos os Pedidos</a>
+                    {% else %}
+                    <p class="text-muted">Ainda não fez nenhum pedido.</p>
+                    <a href="{% url 'bar_app:menu' %}" class="btn btn-primary">Fazer Primeiro Pedido</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-4"><i class="fas fa-money-bill-wave"></i> Transações Recentes</h5>
+
+                    {% if recent_transactions %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
+                                    <th>Descrição</th>
+                                    <th>Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in recent_transactions %}
+                                <tr>
+                                    <td>{{ transaction.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if transaction.transaction_type == 'topup' %}
+                                        <span class="badge bg-success">Carregamento</span>
+                                        {% elif transaction.transaction_type == 'payment' %}
+                                        <span class="badge bg-danger">Pagamento</span>
+                                        {% else %}
+                                        <span class="badge bg-info">Reembolso</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ transaction.description }}</td>
+                                    <td>
+                                        {% if transaction.transaction_type == 'topup' %}
+                                        <span class="text-success">+€{{ transaction.amount }}</span>
+                                        {% else %}
+                                        <span class="text-danger">-€{{ transaction.amount }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <a href="{% url 'bar_app:transaction_list' %}" class="btn btn-outline-primary">Ver Todas as
+                        Transações</a>
+                    {% else %}
+                    <p class="text-muted">Sem transações recentes.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        new QRCode(document.getElementById("qrcode"), {
+            text: "{{ user.username }}",
+            width: 128,
+            height: 128,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    });
+</script>
+{% endblock %}

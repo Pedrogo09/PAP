@@ -1,0 +1,672 @@
+{% extends 'base.html' %}
+
+{% block title %}Menu - Bar Escolar{% endblock %}
+
+{% block content %}
+<style>
+    /* McDonald's Inspired Category Menu */
+    .mcd-categories-container {
+        display: flex;
+        overflow-x: auto;
+        gap: 10px;
+        padding: 10px 5px 25px 5px;
+        scrollbar-width: none; /* Hide scrollbar for Firefox */
+        -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+    }
+    .mcd-categories-container::-webkit-scrollbar {
+        display: none; /* Hide scrollbar for Chrome, Safari, Opera */
+    }
+    .mcd-categories-container::after {
+        content: '';
+        min-width: 15px; /* Spacing at the end of scroll */
+        height: 1px;
+    }
+    
+    .mcd-category-card-input {
+        display: none;
+    }
+    
+    .mcd-category-card {
+        flex: 1 1 0;
+        min-width: 105px;
+        height: 110px;
+        background: #ffffff;
+        border: 2px solid #eaeaea;
+        border-radius: 16px;
+        position: relative;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        overflow: visible;
+        user-select: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    }
+    
+    .mcd-category-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 24px rgba(107, 68, 35, 0.08);
+        border-color: #6B4423;
+    }
+    
+    /* Checked state styled to match site colors (Gold and Warm Brown) */
+    .mcd-category-card-input:checked + .mcd-category-card {
+        background: linear-gradient(135deg, #6B4423 0%, #3E2723 100%);
+        border-color: #FFD700;
+        color: #ffffff;
+        box-shadow: 0 8px 25px rgba(107, 68, 35, 0.3);
+    }
+    
+    .mcd-category-card-input:checked + .mcd-category-card .mcd-category-title {
+        color: #ffffff;
+    }
+    
+    .mcd-category-card-input:checked + .mcd-category-card .mcd-category-icon {
+        color: #FFD700;
+        background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .mcd-category-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: #FAF0E6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: #6B4423;
+        transition: all 0.3s ease;
+    }
+    
+    .mcd-category-title {
+        font-weight: 700;
+        font-size: 0.82rem;
+        color: #3E2723;
+        margin: 0;
+        line-height: 1.2;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 85%;
+    }
+    
+    /* The POPPING OUT food image/icon */
+    .mcd-category-img {
+        position: absolute;
+        bottom: 8px;
+        right: 6px;
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+        mix-blend-mode: multiply;
+        transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        z-index: 1;
+        transform-origin: bottom right;
+    }
+    
+    /* Specific rules for uploaded user drawings with white background */
+    .mcd-category-uploaded-img {
+        mix-blend-mode: multiply; /* Makes white background transparent in light mode */
+    }
+    
+    /* In checked state, invert outline drawings (black lines become white) and blend */
+    .mcd-category-card-input:checked + .mcd-category-card .mcd-category-uploaded-img {
+        filter: invert(1) brightness(1.2);
+        mix-blend-mode: screen; /* Makes inverted black background transparent in dark mode */
+    }
+    
+    .mcd-category-card:hover .mcd-category-img {
+        transform: scale(1.15) rotate(5deg);
+    }
+    
+    /* Responsive layout tweaks */
+    @media (max-width: 768px) {
+        .mcd-category-card {
+            width: 145px;
+            height: 110px;
+            padding: 12px;
+        }
+        .mcd-category-img {
+            width: 60px;
+            height: 60px;
+            bottom: 6px;
+            right: 6px;
+        }
+        .mcd-category-icon {
+            width: 34px;
+            height: 34px;
+            font-size: 16px;
+            border-radius: 10px;
+        }
+        .mcd-category-title {
+            font-size: 0.85rem;
+        }
+    }
+
+    .search-group .form-control:focus {
+        border-color: #dee2e6 !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+    }
+    .card.product-card-container {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .product-card-container:hover {
+        transform: translateY(-5px);
+    }
+</style>
+<div class="container py-5">
+    <h1 class="text-center mb-4 fw-bold"> O Nosso Menu</h1>
+
+    <!-- Filtros e Categorias McDonald's -->
+    <form method="get" id="filterForm">
+        <!-- Filtros Secundários / Pesquisa -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+                    <div class="row g-4 align-items-end">
+                        <!-- Pesquisa principal -->
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold text-muted small text-uppercase">Pesquisar</label>
+                            <div class="input-group input-group-lg search-group">
+                                <span class="input-group-text bg-white border-end-0 text-muted rounded-start-pill ps-4">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" name="search" id="realTimeSearch" 
+                                       class="form-control border-start-0 rounded-end-pill py-3" 
+                                       placeholder="O que procuras hoje?..."
+                                       value="{{ search|default_if_none:'' }}">
+                            </div>
+                        </div>
+
+                        <!-- Filtros Adicionais -->
+                        <div class="col-12 mt-4 pt-3 border-top">
+                            <div class="d-flex flex-wrap align-items-center gap-3">
+                                <!-- Filtro de Preços -->
+                                <div class="btn-group shadow-sm rounded-pill overflow-hidden p-1 bg-light border">
+                                    <input type="radio" name="price" value="" class="btn-check" id="price_all" {% if not price_filter %}checked{% endif %}>
+                                    <label class="btn btn-sm btn-link text-muted px-3 border-0 rounded-pill {% if not price_filter %}bg-white shadow-sm text-primary{% endif %}" for="price_all">Preços</label>
+                                    
+                                    {% for opt in price_options %}
+                                    <input type="radio" name="price" value="{{ opt.value }}" class="btn-check" id="price_{{ opt.value }}" {% if opt.is_selected %}checked{% endif %}>
+                                    <label class="btn btn-sm btn-link text-muted px-3 border-0 rounded-pill {% if opt.is_selected %}bg-white shadow-sm text-primary{% endif %}" for="price_{{ opt.value }}">{{ opt.label }}</label>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- Ordenação -->
+                                <div class="btn-group shadow-sm rounded-pill overflow-hidden p-1 bg-light border">
+                                    <span class="btn btn-sm btn-link text-primary px-3 border-0 rounded-pill"><i class="fas fa-sort-amount-down"></i></span>
+                                    {% for opt in sort_options %}
+                                    <input type="radio" name="sort" value="{{ opt.value }}" class="btn-check" id="sort_{{ opt.value }}" {% if opt.is_selected %}checked{% endif %}>
+                                    <label class="btn btn-sm btn-link text-muted px-3 border-0 rounded-pill {% if opt.is_selected %}bg-white shadow-sm text-primary{% endif %}" for="sort_{{ opt.value }}">{{ opt.label }}</label>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- Favoritos -->
+                                {% if user.is_authenticated %}
+                                <div class="ms-auto">
+                                    <input type="checkbox" name="favorites" value="true" class="btn-check" id="favorites_check" {% if show_favorites %}checked{% endif %}>
+                                    <label class="btn btn-outline-warning rounded-pill px-4 shadow-sm" for="favorites_check">
+                                        <i class="{% if show_favorites %}fas{% else %}far{% endif %} fa-star"></i> Favoritos
+                                    </label>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Linha de Categorias Estilo McDonald's (Abaixo da Pesquisa) -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="mcd-categories-container">
+                    <!-- Cartão "Todas" -->
+                    <input type="radio" name="category" value="" class="mcd-category-card-input" id="cat_all" {% if not category_id %}checked{% endif %} autocomplete="off">
+                    <label class="mcd-category-card" for="cat_all">
+                        <span class="mcd-category-title">Todas</span>
+                        <span class="mcd-category-icon"><i class="fas fa-utensils"></i></span>
+                        <svg class="mcd-category-img" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="42" fill="#FAF0E6" opacity="0.6"/>
+                            <path d="M35 25v30h5V25h-5zm8 0v20h5V25h-5zm8 0v30h5V25h-5zm8 0v20h5V25h-5zm8 0v30h5V25h-5zM48 60v20h4V60h-4z" fill="#6B4423"/>
+                        </svg>
+                    </label>
+
+                    <!-- Cartões de Categorias Dinâmicas -->
+                    {% for cat in categories_data %}
+                    <input type="radio" name="category" value="{{ cat.id }}" class="mcd-category-card-input" id="cat_{{ cat.id }}" {% if cat.is_selected %}checked{% endif %} autocomplete="off">
+                    <label class="mcd-category-card" for="cat_{{ cat.id }}">
+                        <span class="mcd-category-title">{{ cat.name }}</span>
+                        <span class="mcd-category-icon">
+                            {% if 'hamburg' in cat.name.lower or 'sande' in cat.name.lower or 'burg' in cat.name.lower %}
+                                <i class="fas fa-hamburger"></i>
+                            {% elif 'bebid' in cat.name.lower or 'refriger' in cat.name.lower or 'agua' in cat.name.lower or 'sumo' in cat.name.lower %}
+                                <i class="fas fa-cocktail"></i>
+                            {% elif 'sobremes' in cat.name.lower or 'doce' in cat.name.lower or 'gelado' in cat.name.lower or 'pastel' in cat.name.lower or 'crepe' in cat.name.lower or 'waffle' in cat.name.lower %}
+                                <i class="fas fa-ice-cream"></i>
+                            {% elif 'salgad' in cat.name.lower or 'pizza' in cat.name.lower or 'snack' in cat.name.lower or 'batata' in cat.name.lower %}
+                                <i class="fas fa-pizza-slice"></i>
+                            {% elif 'caf' in cat.name.lower or 'pequeno' in cat.name.lower or 'chá' in cat.name.lower %}
+                                <i class="fas fa-mug-hot"></i>
+                            {% elif 'promo' in cat.name.lower or 'menu' in cat.name.lower %}
+                                <i class="fas fa-tags"></i>
+                            {% elif 'fruta' in cat.name.lower %}
+                                <i class="fas fa-apple-alt"></i>
+                            {% elif 'chocolat' in cat.name.lower %}
+                                <i class="fas fa-cookie-bite"></i>
+                            {% elif 'lanche' in cat.name.lower %}
+                                <i class="fas fa-bread-slice"></i>
+                            {% else %}
+                                <i class="fas fa-utensils"></i>
+                            {% endif %}
+                        </span>
+                        
+                        {% if cat.image_url %}
+                            <img src="{{ cat.image_url }}" alt="{{ cat.name }}" class="mcd-category-img mcd-category-uploaded-img">
+                        {% else %}
+                            <!-- SVG Fallback popping out -->
+                            {% if 'hamburg' in cat.name.lower or 'sande' in cat.name.lower or 'burg' in cat.name.lower %}
+                                <svg class="mcd-category-img" viewBox="0 0 100 100">
+                                    <!-- Bun Top -->
+                                    <path d="M15 50 C 15 22, 85 22, 85 50 Z" fill="#E2A76F" />
+                                    <!-- Lettuce -->
+                                    <path d="M10 50 C 20 45, 30 55, 40 48 C 50 55, 60 45, 70 52 C 80 45, 90 50, 90 50" stroke="#2ECC71" stroke-width="6" fill="none" stroke-linecap="round" />
+                                    <!-- Cheese -->
+                                    <path d="M12 52 L 88 52 L 80 62 L 72 52 L 64 62 L 56 52 L 48 62 L 40 52 L 32 62 Z" fill="#FFD700" />
+                                    <!-- Patty -->
+                                    <rect x="14" y="60" width="72" height="12" rx="6" fill="#5C3A21" />
+                                    <!-- Bun Bottom -->
+                                    <path d="M16 72 C 16 83, 84 83, 84 72 Z" fill="#E2A76F" />
+                                    <!-- Sesame Seeds -->
+                                    <ellipse cx="35" cy="34" rx="2" ry="1" fill="#FFF" />
+                                    <ellipse cx="50" cy="28" rx="2" ry="1" fill="#FFF" />
+                                    <ellipse cx="65" cy="33" rx="2" ry="1" fill="#FFF" />
+                                </svg>
+                            {% elif 'bebid' in cat.name.lower or 'refriger' in cat.name.lower or 'agua' in cat.name.lower or 'sumo' in cat.name.lower %}
+                                <svg class="mcd-category-img" viewBox="0 0 100 100">
+                                    <!-- Cup -->
+                                    <path d="M25 32 L 32 85 C 32 88, 68 88, 68 85 L 75 32 Z" fill="#E67E22" />
+                                    <!-- Logo Stripe -->
+                                    <path d="M28 50 Q 50 40, 72 50 L 70 65 Q 50 55, 30 65 Z" fill="#FFD700" opacity="0.9" />
+                                    <!-- Lid -->
+                                    <ellipse cx="50" cy="32" rx="27" ry="5" fill="#ECF0F1" />
+                                    <!-- Straw -->
+                                    <rect x="47" y="10" width="6" height="26" fill="#E74C3C" transform="rotate(15 50 20)" />
+                                </svg>
+                            {% elif 'sobremes' in cat.name.lower or 'doce' in cat.name.lower or 'gelado' in cat.name.lower or 'pastel' in cat.name.lower or 'crepe' in cat.name.lower or 'waffle' in cat.name.lower %}
+                                <svg class="mcd-category-img" viewBox="0 0 100 100">
+                                    <!-- Cup / Cone -->
+                                    <polygon points="50,90 32,50 68,50" fill="#D2B48C" />
+                                    <path d="M32 50 C 25 35, 75 35, 68 50 Z" fill="#FDFEFE" />
+                                    <!-- Swirl -->
+                                    <path d="M37 40 C 37 25, 63 25, 63 40" fill="#FDFEFE" />
+                                    <path d="M42 30 C 42 18, 58 18, 58 30" fill="#FDFEFE" />
+                                    <!-- Chocolate sauce lines -->
+                                    <path d="M40 35 Q 50 45, 60 35" fill="none" stroke="#6B4423" stroke-width="4" stroke-linecap="round" />
+                                    <circle cx="50" cy="18" r="6" fill="#E74C3C" />
+                                </svg>
+                            {% elif 'salgad' in cat.name.lower or 'pizza' in cat.name.lower or 'snack' in cat.name.lower or 'batata' in cat.name.lower %}
+                                <svg class="mcd-category-img" viewBox="0 0 100 100">
+                                    <!-- Fries Cup -->
+                                    <path d="M22 45 L 28 85 C 28 88, 72 88, 72 85 L 78 45 Z" fill="#E74C3C" />
+                                    <path d="M22 45 C 40 52, 60 52, 78 45" fill="#C0392B" />
+                                    <!-- Fries popping out -->
+                                    <rect x="26" y="20" width="8" height="40" fill="#F1C40F" transform="rotate(-10 26 30)" />
+                                    <rect x="36" y="15" width="8" height="45" fill="#F39C12" />
+                                    <rect x="46" y="10" width="8" height="50" fill="#F1C40F" transform="rotate(5 46 25)" />
+                                    <rect x="56" y="12" width="8" height="48" fill="#F39C12" transform="rotate(-5 56 25)" />
+                                    <rect x="66" y="22" width="8" height="38" fill="#F1C40F" transform="rotate(12 66 30)" />
+                                </svg>
+                            {% elif 'caf' in cat.name.lower or 'pequeno' in cat.name.lower or 'chá' in cat.name.lower %}
+                                <svg class="mcd-category-img" viewBox="0 0 100 100">
+                                    <!-- Cup -->
+                                    <path d="M25 40 C 25 70, 75 70, 75 40 Z" fill="#5C3B24" />
+                                    <!-- Handle -->
+                                    <path d="M75 45 C 86 45, 86 57, 75 57" fill="none" stroke="#5C3B24" stroke-width="7" stroke-linecap="round" />
+                                    <!-- Steam -->
+                                    <path d="M38 28 Q 43 18, 38 8" fill="none" stroke="#BDC3C7" stroke-width="3" stroke-linecap="round" />
+                                    <path d="M50 28 Q 55 18, 50 8" fill="none" stroke="#BDC3C7" stroke-width="3" stroke-linecap="round" />
+                                    <path d="M62 28 Q 67 18, 62 8" fill="none" stroke="#BDC3C7" stroke-width="3" stroke-linecap="round" />
+                                </svg>
+                            {% else %}
+                                <svg class="mcd-category-img" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="38" fill="#BDC3C7" />
+                                    <circle cx="50" cy="50" r="32" fill="#FAF0E6" />
+                                    <!-- Fork & Knife -->
+                                    <path d="M40 32 v18 h4 v-18 Z" fill="#7F8C8D" />
+                                    <path d="M44 50 v15 h-4 v-15 Z" fill="#95A5A6" />
+                                    <path d="M58 30 v35 h4 v-35 Z" fill="#7F8C8D" />
+                                </svg>
+                            {% endif %}
+                        {% endif %}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Sugestões de Hoje (Most Popular per Category) -->
+    {% if suggested_products %}
+    <div class="row mb-5" id="suggestionsSection" style="{% if category_id or search or show_favorites %}display: none;{% endif %}">
+        <div class="col-12">
+            <div class="d-flex align-items-baseline mb-3 gap-2">
+                <h3 class="fw-bold mb-0">✨ Sugestões</h3>
+                <span class="text-muted small">| Os mais populares de cada categoria</span>
+            </div>
+            
+            <div class="d-flex overflow-auto gap-3 pb-3 custom-horizontal-scroll">
+                <style>
+                    .custom-horizontal-scroll::-webkit-scrollbar {
+                        height: 8px;
+                    }
+                    .custom-horizontal-scroll::-webkit-scrollbar-track {
+                        background: rgba(0, 0, 0, 0.05);
+                        border-radius: 10px;
+                    }
+                    .custom-horizontal-scroll::-webkit-scrollbar-thumb {
+                        background: #3E2723;
+                        border-radius: 10px;
+                    }
+                    .custom-horizontal-scroll::-webkit-scrollbar-thumb:hover {
+                        background: #5D4037;
+                    }
+                    .suggested-card {
+                        min-width: 280px;
+                        max-width: 280px;
+                        border: none;
+                        border-radius: 20px;
+                        background: #fff;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+                        transition: all 0.3s ease;
+                        padding: 1.25rem;
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    .suggested-card:hover {
+                        transform: translateY(-8px);
+                        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+                    }
+                    .suggested-badge {
+                        position: absolute;
+                        top: 15px;
+                        right: 15px;
+                        background: #FFD600;
+                        color: #000;
+                        padding: 4px 12px;
+                        border-radius: 50px;
+                        font-size: 0.75rem;
+                        font-weight: 700;
+                        letter-spacing: 0.5px;
+                        z-index: 2;
+                    }
+                    .suggested-title {
+                        font-weight: 700;
+                        font-size: 1.1rem;
+                        margin-bottom: 0.5rem;
+                        color: #333;
+                    }
+                    .suggested-price {
+                        font-weight: 800;
+                        color: #3E2723;
+                        font-size: 1.25rem;
+                    }
+                    .suggested-btn {
+                        background: #3E2723;
+                        color: #fff;
+                        border: none;
+                        padding: 8px 20px;
+                        border-radius: 50px;
+                        font-weight: 600;
+                        font-size: 0.9rem;
+                        transition: all 0.2s ease;
+                    }
+                    .suggested-btn:hover {
+                        background: #5D4037;
+                        color: #fff;
+                        transform: scale(1.05);
+                    }
+                </style>
+                
+                {% for prod in suggested_products %}
+                <div class="suggested-card">
+                    <span class="suggested-badge">POPULAR</span>
+                    <div class="d-flex flex-column h-100">
+                        <div class="mb-4">
+                            {% if prod.image %}
+                                <img src="{{ prod.image.url }}" alt="{{ prod.name }}" class="img-fluid rounded-4 mb-3" style="height: 120px; width: 100%; object-fit: cover;">
+                            {% else %}
+                                <div class="bg-light rounded-4 d-flex align-items-center justify-content-center mb-3" style="height: 120px; width: 100%;">
+                                    <i class="fas fa-utensils text-muted fa-2x"></i>
+                                </div>
+                            {% endif %}
+                            <h5 class="suggested-title">{{ prod.name }}</h5>
+                        </div>
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <span class="suggested-price">€{{ prod.current_price }}</span>
+                            <button class="suggested-btn add-to-cart-btn" 
+                                    data-product-id="{{ prod.id }}">
+                                <i class="fas fa-plus me-1"></i> Adicionar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Produtos -->
+    <div class="row g-4" id="productsGrid">
+        {% include 'bar_app/menu_products_partial.html' %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>    document.addEventListener('DOMContentLoaded', function () {
+        const filterForm = document.getElementById('filterForm');
+        const productsGrid = document.getElementById('productsGrid');
+        const searchInput = document.getElementById('realTimeSearch');
+
+        // Function to update results via AJAX
+        function updateResults() {
+            const formData = new FormData(filterForm);
+            const params = new URLSearchParams(formData);
+            
+            // Mostrar/ocultar secção de sugestões dinamicamente
+            const categoryVal = formData.get('category');
+            const searchVal = formData.get('search');
+            const favoritesVal = formData.get('favorites');
+            const suggestionsSection = document.getElementById('suggestionsSection');
+            
+            if (suggestionsSection) {
+                if (!categoryVal && !searchVal && !favoritesVal) {
+                    suggestionsSection.style.display = 'block';
+                } else {
+                    suggestionsSection.style.display = 'none';
+                }
+            }
+            
+            // Show loading state
+            productsGrid.style.opacity = '0.5';
+            productsGrid.style.transition = 'opacity 0.2s';
+
+            fetch(`${window.location.pathname}?${params.toString()}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                productsGrid.innerHTML = html;
+                productsGrid.style.opacity = '1';
+                
+                // Update URL without reload (optional but good for UX)
+                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                window.history.pushState({path: newUrl}, '', newUrl);
+
+                // Re-bind dynamic events (Cart and Favorites)
+                initDynamicEvents();
+            })
+            .catch(err => {
+                console.error('Erro ao filtrar produtos:', err);
+                productsGrid.style.opacity = '1';
+            });
+        }
+
+        // Initialize events for Add to Cart and Favorites
+        function initDynamicEvents() {
+            // Cart Buttons
+            document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+                btn.onclick = function(e) {
+                    e.preventDefault();
+                    handleAddToCart(this);
+                };
+            });
+
+            // Favorite Buttons
+            document.querySelectorAll('.favorite-btn').forEach(btn => {
+                btn.onclick = function(e) {
+                    e.preventDefault();
+                    toggleFavorite(this);
+                };
+            });
+        }
+
+        // Add to Cart Logic
+        function handleAddToCart(btn) {
+            const productId = btn.getAttribute('data-product-id');
+            const originalContent = btn.innerHTML;
+            const cartBadge = document.querySelector('.badge-cart');
+            const cartLink = document.querySelector('a[href*="/cart/"]');
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            fetch(`/cart/add/${productId}/`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (cartBadge) cartBadge.textContent = data.cart_count;
+                    else if (cartLink) {
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'badge-cart';
+                        newBadge.textContent = data.cart_count;
+                        cartLink.appendChild(newBadge);
+                    }
+                    showCartToast(data.product_name, data.total_items, data.total_price);
+                }
+            })
+            .finally(() => {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            });
+        }
+
+        // Favorite Logic
+        function toggleFavorite(btn) {
+            const productId = btn.getAttribute('data-product-id');
+            const icon = btn.querySelector('i');
+
+            fetch(`/product/${productId}/favorite/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.is_favorite) {
+                            icon.classList.replace('far', 'fas');
+                        } else {
+                            icon.classList.replace('fas', 'far');
+                            // If we are currently in "Only Favorites" view, hide the card
+                            const urlParams = new URLSearchParams(window.location.search);
+                            if (urlParams.get('favorites') === 'true') {
+                                btn.closest('.product-card-container').remove();
+                            }
+                        }
+                    }
+                });
+        }
+
+        // Toast Notification
+        function showCartToast(name, items, price) {
+            const container = document.querySelector('div[style*="fixed"]');
+            const toastHtml = `
+                <div class="alert alert-success cart-toast alert-dismissible fade show" role="alert" 
+                     style="background: #1e1e1e; color: #fff; border: 1px solid rgba(255,165,0,0.3); margin-bottom: 0;">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <div class="d-flex justify-content-between align-items-center" style="min-width: 250px;">
+                        <div>
+                            <strong>${name}</strong> adicionado.<br>
+                            <small class="text-muted">${items} item(s) • Total: €${price}</small>
+                        </div>
+                        <a href="/cart/" class="btn btn-sm btn-primary ms-3">Ver Carrinho</a>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                    <div class="toast-progress"></div>
+                </div>
+            `;
+            const toastElement = document.createElement('div');
+            toastElement.innerHTML = toastHtml;
+            const newToast = toastElement.firstElementChild;
+            if (container) container.appendChild(newToast);
+            else {
+                const newContainer = document.createElement('div');
+                newContainer.style = "position: fixed; bottom: 20px; right: 20px; z-index: 1050; display: flex; flex-direction: column; gap: 10px;";
+                newContainer.appendChild(newToast);
+                document.body.appendChild(newContainer);
+            }
+            setTimeout(() => {
+                newToast.classList.add('toast-hide');
+                setTimeout(() => { newToast.remove(); }, 500);
+            }, 4000);
+        }
+
+        // Listen for Form Changes (Pills)
+        filterForm.querySelectorAll('input').forEach(input => {
+            input.addEventListener('change', updateResults);
+        });
+
+        // Real-time Search with Debounce
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(updateResults, 300);
+        });
+
+        // Highlight selected pills visually, handle scroll centering + scroll to grid
+        filterForm.addEventListener('change', (e) => {
+            if (e.target.name === 'sort' || e.target.name === 'price') {
+                const group = e.target.closest('.btn-group');
+                group.querySelectorAll('label').forEach(lbl => lbl.classList.remove('bg-white', 'shadow-sm', 'text-primary'));
+                const label = group.querySelector(`label[for="${e.target.id}"]`);
+                if (label) label.classList.add('bg-white', 'shadow-sm', 'text-primary');
+            }
+            if (e.target.name === 'category') {
+                // Centrar o cartão selecionado no scroll horizontal
+                const activeLabel = filterForm.querySelector(`label[for="${e.target.id}"]`);
+                if (activeLabel) {
+                    activeLabel.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+                
+                // Scroll suave até à grelha de produtos
+                const targetScroll = document.getElementById('productsGrid');
+                if (targetScroll) {
+                    setTimeout(() => {
+                        targetScroll.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 150);
+                }
+            }
+        });
+
+        // Initial Bind
+        initDynamicEvents();
+    });
+</script>
+{% endblock %}

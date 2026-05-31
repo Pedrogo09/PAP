@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Scan QR Code - Admin{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="mb-4"><i class="fas fa-camera"></i> Identificação via QR Code</h1>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div id="reader" style="width: 100%; max-width: 600px; margin: 0 auto;"></div>
+                    <div id="result" class="mt-4 d-none">
+                        <div class="alert alert-success">
+                            <h4 class="alert-heading"><i class="fas fa-check-circle"></i> Utilizador Encontrado!</h4>
+                            <hr>
+                            <div class="row text-start">
+                                <div class="col-sm-6">
+                                    <p><strong>Nome:</strong> <span id="user-name"></span></p>
+                                    <p><strong>Utilizador:</strong> <span id="user-username"></span></p>
+                                </div>
+                                <div class="col-sm-6">
+                                    <p><strong>Tipo:</strong> <span id="user-type"></span></p>
+                                    <p><strong>Saldo:</strong> <span id="user-balance"></span>€</p>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <a id="user-profile-link" href="#" class="btn btn-primary">
+                                    <i class="fas fa-user"></i> Ver Perfil Completo
+                                </a>
+                                <a id="user-orders-link" href="#" class="btn btn-secondary">
+                                    <i class="fas fa-shopping-bag"></i> Gerir Pedidos
+                                </a>
+                                <button onclick="restartScanner()" class="btn btn-outline-success">
+                                    <i class="fas fa-redo"></i> Novo Scan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="error-msg" class="alert alert-danger d-none mt-3"></div>
+                </div>
+            </div>
+
+            <div class="text-muted small">
+                <p><i class="fas fa-info-circle"></i> Aponte a câmara para o QR Code no telemóvel do aluno.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    let html5QrcodeScanner;
+
+    function onScanSuccess(decodedText, decodedResult) {
+        // Parar o scanner para processar
+        html5QrcodeScanner.clear();
+
+        // Loader ou feedback visual
+        document.getElementById('reader').classList.add('d-none');
+
+        // Chamada AJAX para o servidor
+        fetch(`{% url 'bar_app:quick_user_lookup' %}?username=${encodeURIComponent(decodedText)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('user-name').innerText = data.full_name;
+                    document.getElementById('user-username').innerText = data.username;
+                    document.getElementById('user-type').innerText = data.user_type;
+                    document.getElementById('user-balance').innerText = data.balance.replace('.', ',');
+                    document.getElementById('user-profile-link').href = data.profile_url;
+                    document.getElementById('user-orders-link').href = data.recent_orders_url;
+
+                    document.getElementById('result').classList.remove('d-none');
+                } else {
+                    showError(data.error || 'Erro ao identificar utilizador.');
+                }
+            })
+            .catch(err => {
+                showError('Erro na ligação ao servidor.');
+                console.error(err);
+            });
+    }
+
+    function onScanFailure(error) {
+        // Erros de decodificação ignorados para não poluir
+    }
+
+    function showError(msg) {
+        const errDiv = document.getElementById('error-msg');
+        errDiv.innerText = msg;
+        errDiv.classList.remove('d-none');
+        setTimeout(() => {
+            errDiv.classList.add('d-none');
+            restartScanner();
+        }, 3000);
+    }
+
+    function restartScanner() {
+        document.getElementById('result').classList.add('d-none');
+        document.getElementById('reader').classList.remove('d-none');
+        startScanner();
+    }
+
+    function startScanner() {
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
+            /* verbose= */ false
+        );
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    }
+
+    document.addEventListener('DOMContentLoaded', startScanner);
+</script>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}Meus Pedidos - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="mb-4 fw-bold"><i class="fas fa-shopping-bag"></i> Meus Pedidos</h1>
+    
+    {% if orders %}
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h6 class="card-title mb-3">Filtrar Pedidos</h6>
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">Todos os Estados</option>
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pendente</option>
+                        <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Confirmado</option>
+                        <option value="preparing" {% if request.GET.status == 'preparing' %}selected{% endif %}>Em Preparação</option>
+                        <option value="ready" {% if request.GET.status == 'ready' %}selected{% endif %}>Pronto</option>
+                        <option value="delivered" {% if request.GET.status == 'delivered' %}selected{% endif %}>Entregue</option>
+                        <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select name="sort" class="form-select" onchange="this.form.submit()">
+                        <option value="-created_at" {% if request.GET.sort == '-created_at' %}selected{% endif %}>Mais Recentes</option>
+                        <option value="created_at" {% if request.GET.sort == 'created_at' %}selected{% endif %}>Mais Antigos</option>
+                        <option value="-total_amount" {% if request.GET.sort == '-total_amount' %}selected{% endif %}>Maior Valor</option>
+                        <option value="total_amount" {% if request.GET.sort == 'total_amount' %}selected{% endif %}>Menor Valor</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    {% if request.GET.status or request.GET.sort %}
+                    <a href="{% url 'bar_app:order_list' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-times"></i> Limpar Filtros
+                    </a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Estatísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="text-center">
+                <h5 class="text-muted">Total de Pedidos</h5>
+                <h3 class="text-primary">{{ orders.count }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="text-center">
+                <h5 class="text-muted">Gasto Total</h5>
+                <h3 class="text-success">€{{ total_spent }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="text-center">
+                <h5 class="text-muted">Entregues</h5>
+                <h3 class="text-info">{{ delivered_count }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="text-center">
+                <h5 class="text-muted">Pendentes</h5>
+                <h3 class="text-warning">{{ pending_count }}</h3>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista de Pedidos -->
+    <div class="row g-4">
+        {% for order in orders %}
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="card-title mb-1">{{ order.order_number }}</h5>
+                            <small class="text-muted">
+                                <i class="fas fa-calendar"></i> {{ order.scheduled_date|date:"d/m/Y" }} às {{ order.scheduled_time|time:"H:i" }}
+                            </small>
+                        </div>
+                        <div>
+                            {% if order.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pendente</span>
+                            {% elif order.status == 'confirmed' %}
+                            <span class="badge bg-info">Confirmado</span>
+                            {% elif order.status == 'preparing' %}
+                            <span class="badge bg-primary">Em Preparação</span>
+                            {% elif order.status == 'ready' %}
+                            <span class="badge bg-success">Pronto</span>
+                            {% elif order.status == 'delivered' %}
+                            <span class="badge bg-secondary">Entregue</span>
+                            {% else %}
+                            <span class="badge bg-danger">Cancelado</span>
+                            {% endif %}
+                            {% if order.is_priority %}
+                            <span class="badge bg-warning text-dark"><i class="fas fa-star"></i></span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>Itens:</strong>
+                        <ul class="list-unstyled mb-0 small">
+                            {% for item in order.items.all %}
+                            <li><i class="fas fa-check text-muted"></i> {{ item.quantity }}x {{ item.product.name }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="text-primary mb-0">€{{ order.total_amount }}</h4>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'bar_app:order_detail' order.pk %}" class="btn btn-outline-primary" title="Ver detalhes">
+                                <i class="fas fa-eye"></i> Ver
+                            </a>
+                            {% if order.can_be_cancelled %}
+                            <a href="{% url 'bar_app:cancel_order' order.pk %}" class="btn btn-outline-danger" title="Cancelar pedido" onclick="return confirm('Tem certeza que deseja cancelar este pedido?')">
+                                <i class="fas fa-times"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-shopping-bag fa-5x text-muted mb-4"></i>
+        <h3>Ainda não fez nenhum pedido</h3>
+        <p class="text-muted mb-4">Explore o nosso menu e faça o seu primeiro pedido</p>
+        <a href="{% url 'bar_app:menu' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-utensils"></i> Ver Menu
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

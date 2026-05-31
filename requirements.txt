@@ -1,0 +1,12 @@
+Django>=5.1,<6.0
+Pillow
+python-dateutil
+pytz
+sqlparse
+asgiref
+reportlab
+django-jazzmin
+python-dotenv
+django-axes
+django-simple-captcha
+requests
