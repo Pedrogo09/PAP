@@ -1,0 +1,230 @@
+/* ==========================================================================
+   MENU STYLES - Bar Escolar
+   CSS específico para a página de menu (extraído do menu.html)
+   ========================================================================== */
+
+/* McDonald's Inspired Category Menu */
+.mcd-categories-container {
+    display: flex;
+    overflow-x: auto;
+    gap: 10px;
+    padding: 10px 5px 25px 5px;
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
+}
+.mcd-categories-container::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Chrome, Safari, Opera */
+}
+.mcd-categories-container::after {
+    content: '';
+    min-width: 15px; /* Spacing at the end of scroll */
+    height: 1px;
+}
+
+.mcd-category-card-input {
+    display: none;
+}
+
+.mcd-category-card {
+    flex: 1 1 0;
+    min-width: 105px;
+    height: 110px;
+    background: #ffffff;
+    border: 2px solid #eaeaea;
+    border-radius: 16px;
+    position: relative;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    overflow: visible;
+    user-select: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+}
+
+.mcd-category-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(107, 68, 35, 0.08);
+    border-color: #6B4423;
+}
+
+/* Checked state styled to match site colors (Gold and Warm Brown) */
+.mcd-category-card-input:checked + .mcd-category-card {
+    background: linear-gradient(135deg, #6B4423 0%, #3E2723 100%);
+    border-color: #FFD700;
+    color: #ffffff;
+    box-shadow: 0 8px 25px rgba(107, 68, 35, 0.3);
+}
+
+.mcd-category-card-input:checked + .mcd-category-card .mcd-category-title {
+    color: #ffffff;
+}
+
+.mcd-category-card-input:checked + .mcd-category-card .mcd-category-icon {
+    color: #FFD700;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.mcd-category-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: #FAF0E6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #6B4423;
+    transition: all 0.3s ease;
+}
+
+.mcd-category-title {
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #3E2723;
+    margin: 0;
+    line-height: 1.2;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 85%;
+}
+
+/* The POPPING OUT food image/icon */
+.mcd-category-img {
+    position: absolute;
+    bottom: 8px;
+    right: 6px;
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    z-index: 1;
+    transform-origin: bottom right;
+}
+
+/* Specific rules for uploaded user drawings with white background */
+.mcd-category-uploaded-img {
+    mix-blend-mode: multiply; /* Makes white background transparent in light mode */
+}
+
+/* In checked state, invert outline drawings (black lines become white) and blend */
+.mcd-category-card-input:checked + .mcd-category-card .mcd-category-uploaded-img {
+    filter: invert(1) brightness(1.2);
+    mix-blend-mode: screen; /* Makes inverted black background transparent in dark mode */
+}
+
+.mcd-category-card:hover .mcd-category-img {
+    transform: scale(1.15) rotate(5deg);
+}
+
+/* Responsive layout tweaks */
+@media (max-width: 768px) {
+    .mcd-category-card {
+        width: 145px;
+        height: 110px;
+        padding: 12px;
+    }
+    .mcd-category-img {
+        width: 60px;
+        height: 60px;
+        bottom: 6px;
+        right: 6px;
+    }
+    .mcd-category-icon {
+        width: 34px;
+        height: 34px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+    .mcd-category-title {
+        font-size: 0.85rem;
+    }
+}
+
+.search-group .form-control:focus {
+    border-color: #dee2e6 !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+}
+.card.product-card-container {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.product-card-container:hover {
+    transform: translateY(-5px);
+}
+
+/* Custom horizontal scroll for suggestions */
+.custom-horizontal-scroll::-webkit-scrollbar {
+    height: 8px;
+}
+.custom-horizontal-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+}
+.custom-horizontal-scroll::-webkit-scrollbar-thumb {
+    background: #3E2723;
+    border-radius: 10px;
+}
+.custom-horizontal-scroll::-webkit-scrollbar-thumb:hover {
+    background: #5D4037;
+}
+
+.suggested-card {
+    min-width: 280px;
+    max-width: 280px;
+    border: none;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+.suggested-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+}
+.suggested-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #FFD600;
+    color: #000;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    z-index: 2;
+}
+.suggested-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+.suggested-price {
+    font-weight: 800;
+    color: #3E2723;
+    font-size: 1.25rem;
+}
+.suggested-btn {
+    background: #3E2723;
+    color: #fff;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+.suggested-btn:hover {
+    background: #5D4037;
+    color: #fff;
+    transform: scale(1.05);
+}

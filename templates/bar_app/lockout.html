@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Conta Bloqueada - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger mb-3">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-lock me-2"></i>Acesso Bloqueado Temporariamente
+                </div>
+                <div class="card-body text-danger">
+                    <h5 class="card-title">Muitas tentativas falhadas</h5>
+                    <p class="card-text">
+                        O seu acesso foi bloqueado devido a múltiplas tentativas de autenticação inválidas.
+                        <br><br>
+                        <strong>O bloqueio dura 2 minutos.</strong>
+                        <br>
+                        Após esse tempo, pode tentar novamente.
+                    </p>
+                    
+                    <div class="alert alert-info mt-3">
+                        <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Para testes da PAP:</h6>
+                        <p class="mb-2 small">
+                            Se precisa de desbloquear imediatamente para testes, abra um <strong>terminal separado</strong> (não o do servidor) e execute:
+                        </p>
+                        <code class="d-block bg-light p-2 rounded text-dark small">
+                            python manage.py unlock_user --all
+                        </code>
+                        <p class="mb-0 small mt-2">
+                            Ou para desbloquear um utilizador específico:
+                        </p>
+                        <code class="d-block bg-light p-2 rounded text-dark small">
+                            python manage.py unlock_user --username admin
+                        </code>
+                    </div>
+                    
+                    <a href="{% url 'bar_app:home' %}" class="btn btn-outline-danger mt-3">
+                        <i class="fas fa-home me-2"></i>Voltar à Página Inicial
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

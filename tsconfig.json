@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./static/js/dist",
+    "rootDir": "./static/ts",
+    "lib": ["DOM", "ESNext"]
+  },
+  "include": ["static/ts/**/*"]
+}
