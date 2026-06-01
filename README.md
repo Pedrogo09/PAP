@@ -5,11 +5,11 @@ Sistema de gestão de bar escolar desenvolvido em **Django 5.2**, com suporte a 
 ---
 
 ## 📊 Linguagens do Projeto
-- 🟠 **HTML:** 51.8%
-- 🐍 **Python:** 42.7%
-- 🎨 **CSS:** 2.0%
-- 🔵 **TypeScript:** 1.4%
-- ⚪ **Outros:** 2.1%
+- 🟠 **HTML:** 44.3%
+- 🐍 **Python:** 43.2%
+- 🎨 **CSS:** 5.0%
+- 🔵 **TypeScript:** 5.8%
+- ⚪ **Outros:** 1.7%
 
 ---
 
