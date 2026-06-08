@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+{% load l10n %}
+
+{% block title %}Adicionar Stock - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-4"><i class="fas fa-box-open"></i> Adicionar Stock</h1>
+
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-body">
+          <form method="post" id="stockForm">
+            {% csrf_token %}
+            
+            <!-- Categoria -->
+            <div class="mb-3">
+              <label class="form-label"><i class="fas fa-list"></i> Categoria</label>
+              {{ form.category }}
+              {% if form.category.errors %}
+                <div class="alert alert-danger mt-2">{{ form.category.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Pesquisa de Produto -->
+            <div class="mb-3">
+              <label class="form-label"><i class="fas fa-search"></i> Pesquisar Produto</label>
+              {{ form.product_search }}
+              <small class="form-text text-muted">Digite o nome para filtrar</small>
+            </div>
+
+            <!-- Seleção de Produto -->
+            <div class="mb-3">
+              <label class="form-label"><i class="fas fa-box"></i> Produto</label>
+              {{ form.product }}
+              {% if form.product.errors %}
+                <div class="alert alert-danger mt-2">{{ form.product.errors }}</div>
+              {% endif %}
+              
+              <!-- Info do Produto Selecionado -->
+              <div id="productInfo" class="alert alert-info mt-3" style="display:none;">
+                <small>
+                  <strong>Preço unitário:</strong> <span id="productPrice">—</span> €<br>
+                  <strong>Stock atual:</strong> <span id="productStock">—</span> unidades<br>
+                  <strong>Custo (50%):</strong> <span id="productCost">—</span> € por unidade
+                </small>
+              </div>
+            </div>
+
+            <!-- Quantidade -->
+            <div class="mb-3">
+              <label class="form-label"><i class="fas fa-plus-circle"></i> Quantidade</label>
+              {{ form.quantity }}
+              {% if form.quantity.errors %}
+                <div class="alert alert-danger mt-2">{{ form.quantity.errors }}</div>
+              {% endif %}
+              
+              <!-- Cálculo Total -->
+              <div id="totalInfo" class="alert alert-warning mt-3" style="display:none;">
+                <strong>Custo total:</strong> <span id="totalCost">—</span> €
+              </div>
+            </div>
+
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-success btn-lg">
+                <i class="fas fa-save"></i> Adicionar Stock
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title"><i class="fas fa-info-circle"></i> Como Funciona</h5>
+          <p class="card-text small">
+            <strong>1.</strong> Selecione a categoria do produto (opcional)
+          </p>
+          <p class="card-text small">
+            <strong>2.</strong> Pesquise ou escolha o produto na lista
+          </p>
+          <p class="card-text small">
+            <strong>3.</strong> Digite a quantidade desejada
+          </p>
+          <p class="card-text small">
+            <strong>4.</strong> Clique em "Adicionar Stock"
+          </p>
+          
+          <hr/>
+          
+          <h6 class="card-title"><i class="fas fa-calculator"></i> Cálculo de Custo</h6>
+          <p class="card-text small">
+            O stock é comprado a <strong>50% do preço de venda</strong>.
+          </p>
+          <p class="card-text small">
+            <strong>Exemplo:</strong><br>
+            Produto: €4.00<br>
+            Custo/un: €2.00 (50%)<br>
+            Qtd: 5<br>
+            <strong>Total: €10.00</strong>
+          </p>
+          
+          <hr/>
+          
+          <p class="text-muted small mb-0">
+            O valor será debitado automaticamente da <strong>Conta da Escola</strong>.
+          </p>
+          
+          <div class="mt-3">
+            <a href="{% url 'bar_app:finance_summary' %}" class="btn btn-outline-secondary btn-sm w-100">
+              <i class="fas fa-arrow-left"></i> Voltar ao Resumo
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card com Categorias Rápidas -->
+      <div class="card mt-3">
+        <div class="card-body">
+          <h6 class="card-title"><i class="fas fa-tags"></i> Categorias Rápidas</h6>
+          <div class="btn-group-vertical w-100" role="group">
+            {% for cat in categories %}
+              <button type="button" class="btn btn-outline-secondary btn-sm text-start category-quick-btn" data-category-id="{{ cat.id }}">
+                {{ cat.name }}
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dados dos Produtos para JavaScript -->
+<script>
+  // Array com todos os produtos
+  const allProducts = [
+    {% localize off %}
+    {% for product in all_products %}
+      {
+        id: {{ product.id }},
+        name: "{{ product.name|escapejs }}",
+        price: {{ product.price }},
+        stock: {{ product.stock }},
+        category_id: {{ product.category.id|default:"null" }}
+      }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+    {% endlocalize %}
+  ];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('id_category');
+    const productSelect = document.getElementById('id_product');
+    const productSearch = document.getElementById('id_product_search');
+    const productInfo = document.getElementById('productInfo');
+    const totalInfo = document.getElementById('totalInfo');
+    const quantityInput = document.querySelector('input[name="quantity"]');
+    const categoryQuickBtns = document.querySelectorAll('.category-quick-btn');
+
+    // Função para normalizar strings (remover acentos)
+    function normalizeStr(str) {
+      if (!str) return '';
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    }
+
+    // Função para atualizar lista de produtos baseado na categoria e busca
+    function updateProducts() {
+      try {
+        const selectedCategoryId = categorySelect.value ? parseInt(categorySelect.value) : null;
+        const searchTerm = normalizeStr(productSearch.value);
+        
+        // Filtrar produtos
+        let filtered = allProducts.filter(p => {
+          const matchCategory = !selectedCategoryId || p.category_id === selectedCategoryId;
+          const normalizedName = normalizeStr(p.name);
+          const matchSearch = !searchTerm || normalizedName.includes(searchTerm);
+          return matchCategory && matchSearch;
+        });
+
+        // Atualizar dropdown de produtos
+        const currentSelected = productSelect.value;
+        productSelect.innerHTML = '';
+        
+        if (filtered.length === 0) {
+          productSelect.innerHTML = '<option value="">-- Nenhum produto encontrado --</option>';
+        } else {
+          productSelect.innerHTML = '<option value="">-- Selecionar Produto --</option>';
+          filtered.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.id;
+            option.textContent = `${p.name} (€${p.price.toFixed(2).replace('.', ',')})`;
+            productSelect.appendChild(option);
+          });
+        }
+
+        // Se houver apenas 1 resultado e o utilizador estiver a pesquisar, seleciona logo
+        if (filtered.length === 1 && searchTerm.length > 0) {
+          productSelect.value = filtered[0].id;
+        } else if (filtered.some(p => p.id == currentSelected)) {
+          // Mantém o selecionado se ele ainda estiver na lista filtrada
+          productSelect.value = currentSelected;
+        }
+
+        updateProductInfo();
+      } catch (err) {
+        console.error("Erro ao atualizar produtos:", err);
+      }
+    }
+
+    // Função para atualizar informações do produto selecionado
+    function updateProductInfo() {
+      const selectedProductId = parseInt(productSelect.value);
+      const product = allProducts.find(p => p.id === selectedProductId);
+
+      if (product) {
+        const costPerUnit = (product.price * 0.5).toFixed(2);
+        const totalCost = (costPerUnit * parseInt(quantityInput.value || 1)).toFixed(2);
+
+        document.getElementById('productPrice').textContent = product.price.toFixed(2).replace('.', ',');
+        document.getElementById('productStock').textContent = product.stock;
+        document.getElementById('productCost').textContent = costPerUnit.replace('.', ',');
+        document.getElementById('totalCost').textContent = totalCost.replace('.', ',');
+
+        productInfo.style.display = 'block';
+        totalInfo.style.display = 'block';
+      } else {
+        productInfo.style.display = 'none';
+        totalInfo.style.display = 'none';
+      }
+    }
+
+    // Event listeners
+    categorySelect.addEventListener('change', updateProducts);
+    productSearch.addEventListener('input', updateProducts);
+    productSelect.addEventListener('change', updateProductInfo);
+    quantityInput.addEventListener('change', updateProductInfo);
+    quantityInput.addEventListener('input', updateProductInfo);
+
+    // Botões de categoria rápida
+    categoryQuickBtns.forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const categoryId = this.dataset.categoryId;
+        categorySelect.value = categoryId;
+        categorySelect.dispatchEvent(new Event('change'));
+        productSearch.focus();
+      });
+    });
+
+    // Inicializar lista
+    updateProducts();
+  });
+</script>
+
+<style>
+  .category-quick-btn {
+    border-radius: 0;
+    font-size: 0.9rem;
+  }
+  
+  .category-quick-btn:first-child {
+    border-radius: 0.25rem 0.25rem 0 0;
+  }
+  
+  .category-quick-btn:last-child {
+    border-radius: 0 0 0.25rem 0.25rem;
+  }
+</style>
+{% endblock %}

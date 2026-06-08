@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Checkout - Bar Escolar{% endblock %}
+
+{% block extra_css %}
+<script>
+    window.SCHEDULES_DATA = {{ schedule_json|safe }};
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5" data-balance="{{ user.balance }}" data-total="{{ total }}">
+    <h1 class="mb-4 fw-bold"><i class="fas fa-credit-card"></i> Finalizar Pedido</h1>
+    
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Detalhes do Pedido</h5>
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Erros no formulário:</strong>
+                            <ul class="mb-0">
+                                {% for field, errors in form.errors.items %}
+                                    {% for err in errors %}
+                                        <li>{{ err }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    
+                    <form method="post" id="checkoutForm">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="scheduled_date" class="form-label">Data de Levantamento</label>
+                            <input type="date" name="scheduled_date" id="scheduled_date" class="form-control" required min="{{ today }}" value="{{ default_date }}">
+                            <small id="dateWarning" class="text-danger d-none">
+                                <i class="fas fa-exclamation-circle"></i> O bar está fechado neste dia!
+                            </small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="mb-3">
+                                    <label for="scheduled_hour" class="form-label">Hora</label>
+                                    <select name="scheduled_hour" id="scheduled_hour" class="form-select" required>
+                                        <option value="">Selecione a hora...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="mb-3">
+                                    <label for="scheduled_minute" class="form-label">Minuto</label>
+                                    <select name="scheduled_minute" id="scheduled_minute" class="form-select" required>
+                                        <option value="">Selecione o minuto...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" name="scheduled_time" id="scheduled_time" value="">
+                        <small id="timeWarning" class="text-danger d-none">
+                            <i class="fas fa-exclamation-circle"></i> Este horário não está disponível. Horários: <span id="availableHours"></span>
+                        </small>
+                        
+                        <div class="mb-3">
+                            <label for="payment_method" class="form-label">Método de Pagamento</label>
+                            <select name="payment_method" id="payment_method" class="form-select" required onchange="updatePaymentInfo()">
+                                <option value="card">Cartão Escolar</option>
+                                <option value="atm">Multibanco</option>
+                            </select>
+                            <small id="paymentInfo" class="text-muted">Débito direto do seu saldo do cartão escolar</small>
+                        </div>
+                        
+                        <!-- Informação Multibanco -->
+                        <div id="multibanco_info" class="alert alert-info d-none" role="alert">
+                            <h6 class="alert-heading"><i class="fas fa-mobile-alt"></i> Referência Multibanco</h6>
+                            <p class="mb-2">Receberá uma referência Multibanco única para confirmar o pagamento:</p>
+                            <div class="bg-white p-3 rounded border text-center mb-2">
+                                <p class="mb-0"><strong>Entidade:</strong> 12345</p>
+                                <p class="mb-0"><strong>Referência:</strong> <span id="reference_number">545054{{ order_id }}</span></p>
+                                <p class="mb-0"><strong>Valor:</strong> €{{ total }}</p>
+                            </div>
+                            <p class="text-muted small mb-0">
+                                <i class="fas fa-info-circle"></i> Pode pagar via caixa multibanco, app bancária ou online banking
+                            </p>
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" id="confirm_atm">
+                                <label class="form-check-label" for="confirm_atm">
+                                    Confirmo que vou pagar por Multibanco usando a referência acima
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notas (opcional)</label>
+                            <textarea name="notes" id="notes" class="form-control" rows="3" placeholder="Alguma observação especial? (sem sal, sem cebola, etc)"></textarea>
+                        </div>
+                        
+                        {% if user.is_priority_user %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-star"></i> <strong>Pedido Prioritário</strong> - Como {{ user.get_user_type_display }}, o seu pedido terá prioridade na fila.
+                        </div>
+                        {% endif %}
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">
+                            <i class="fas fa-check"></i> Confirmar Pedido
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-5">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4"><i class="fas fa-shopping-bag"></i> Resumo do Pedido</h5>
+                    
+                    <div class="order-items">
+                        {% for item in items %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                            <div>
+                                <div>{{ item.quantity }}x <strong>{{ item.product.name }}</strong></div>
+                                <small class="text-muted">€{{ item.current_price }} x {{ item.quantity }}</small>
+                            </div>
+                            <strong>€{{ item.subtotal }}</strong>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <hr class="my-3">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0">Total:</h5>
+                        <h4 class="text-primary mb-0">€{{ total }}</h4>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Saldo e Validação -->
+            <div class="card {% if user.balance < total %}border-danger{% else %}border-success{% endif %}">
+                <div class="card-body">
+                    <h6 class="card-title mb-3"><i class="fas fa-wallet"></i> Saldo da Conta</h6>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-baseline mb-2">
+                            <span class="text-muted">Saldo Atual:</span>
+                            <h5 class="mb-0">€{{ user.balance }}</h5>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-baseline mb-2">
+                            <span class="text-muted">Total do Pedido:</span>
+                            <h5 class="mb-0">€{{ total }}</h5>
+                        </div>
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div class="progress-bar {% if user.balance >= total %}bg-success{% else %}bg-danger{% endif %}"
+                                 role="progressbar"
+                                 style="width: 100%; max-width: 100%;"
+                                 aria-valuenow="{{ user.balance }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="{{ total }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if user.balance >= total %}
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle"></i> Saldo suficiente
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger mb-0">
+                        <i class="fas fa-exclamation-circle"></i> 
+                        <strong>Saldo insuficiente!</strong><br>
+                        Faltam: €{{ total|add:user.balance|add:0|floatformat:2 }}<br>
+                        <a href="{% url 'bar_app:topup' %}" class="btn btn-danger btn-sm mt-2">
+                            <i class="fas fa-plus"></i> Carregar Saldo Agora
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dist/checkout.js' %}"></script>
+{% endblock %}

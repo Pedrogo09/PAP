@@ -1,0 +1,374 @@
+{% extends 'base.html' %}
+
+{% block title %}Resumo Financeiro - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-chart-bar"></i> Resumo Financeiro</h1>
+    <div class="btn-group shadow-sm">
+      <a id="export-excel" href="{% url 'bar_app:export_transactions_csv' %}?tx_type={{ current_filter }}" class="btn btn-success fw-bold px-4 rounded-start-pill shadow-sm">
+        <i class="fas fa-file-excel me-1"></i> Excel
+      </a>
+      <a id="export-pdf" href="{% url 'bar_app:export_transactions_pdf' %}?tx_type={{ current_filter }}" class="btn btn-danger fw-bold px-4 rounded-end-pill shadow-sm">
+        <i class="fas fa-file-pdf me-1"></i> PDF
+      </a>
+      <a href="{% url 'bar_app:add_stock_dashboard' %}" class="btn btn-primary fw-bold px-4 ms-3 rounded-pill shadow-sm">
+        <i class="fas fa-plus-circle me-1"></i> Stock
+      </a>
+    </div>
+  </div>
+
+  <!-- Cards Totalizadores -->
+  <div class="row mb-4">
+    <div class="col-md col-sm-6 mb-3">
+      <div class="card text-white bg-primary h-100 shadow-sm border-0">
+        <div class="card-body">
+          <h6 class="card-title text-truncate small text-uppercase fw-bold opacity-75"><i class="fas fa-arrow-up"></i> Carregamentos</h6>
+          <h2 class="mb-0 fw-bold">€{{ total_deposits }}</h2>
+          <small class="opacity-75">Depósitos de Alunos</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-6 mb-3">
+      <div class="card text-white bg-success h-100 shadow-sm border-0">
+        <div class="card-body">
+          <h6 class="card-title text-truncate small text-uppercase fw-bold opacity-75"><i class="fas fa-shopping-cart"></i> Pagamentos</h6>
+          <h2 class="mb-0 fw-bold">€{{ total_sales }}</h2>
+          <small class="opacity-75">Vendas Totais</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-6 mb-3">
+      <div class="card text-white bg-warning h-100 shadow-sm border-0">
+        <div class="card-body text-dark">
+          <h6 class="card-title text-truncate small text-uppercase fw-bold opacity-75"><i class="fas fa-undo"></i> Reembolsos</h6>
+          <h2 class="mb-0 fw-bold">€{{ total_refunds }}</h2>
+          <small class="opacity-75">Devoluções Totais</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-6 mb-3">
+      <div class="card text-white bg-dark h-100 shadow-sm border-0">
+        <div class="card-body">
+          <h6 class="card-title text-truncate small text-uppercase fw-bold opacity-75"><i class="fas fa-box"></i> Compras</h6>
+          <h2 class="mb-0 fw-bold">€{{ total_expenses }}</h2>
+          <small class="opacity-75">Custo de Stock</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-6 mb-3">
+      <div class="card text-white bg-info h-100 shadow-sm border-0">
+        <div class="card-body">
+          <h6 class="card-title text-truncate small text-uppercase fw-bold opacity-75"><i class="fas fa-coins"></i> Ganho Líquido</h6>
+          <h2 class="mb-0 fw-bold">€{{ net_earned }}</h2>
+          <small class="opacity-75">Lucro Real</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dados do Mês Actual -->
+  {% if current_month %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alert alert-info" role="alert">
+        <i class="fas fa-calendar"></i> <strong>Resumo do Mês: {{ current_month }}</strong>
+      </div>
+    </div>
+    <div class="col-md col-sm-6 mb-3">
+      <div class="card text-white bg-primary h-100 shadow-sm border-0 opacity-75">
+        <div class="card-body">
+          <h6 class="card-title text-truncate small text-uppercase fw-bold"><i class="fas fa-arrow-up"></i> Carregamentos</h6>
+          <h2 class="mb-0 fw-bold">€{{ month_deposits }}</h2>
+          <small>Este mês</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-6 mb-3">
+      <div class="card text-white bg-success h-100 shadow-sm border-0 opacity-75">
+        <div class="card-body">
+          <h6 class="card-title text-truncate small text-uppercase fw-bold"><i class="fas fa-shopping-cart"></i> Pagamentos</h6>
+          <h2 class="mb-0 fw-bold">€{{ month_sales }}</h2>
+          <small>Este mês</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-6 mb-3">
+      <div class="card text-white bg-warning h-100 shadow-sm border-0 opacity-75 text-dark">
+        <div class="card-body">
+          <h6 class="card-title text-truncate small text-uppercase fw-bold"><i class="fas fa-undo"></i> Reembolsos</h6>
+          <h2 class="mb-0 fw-bold">€{{ month_refunds }}</h2>
+          <small>Este mês</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-6 mb-3">
+      <div class="card text-white bg-dark h-100 shadow-sm border-0 opacity-75">
+        <div class="card-body">
+          <h6 class="card-title text-truncate small text-uppercase fw-bold"><i class="fas fa-box"></i> Compras</h6>
+          <h2 class="mb-0 fw-bold">€{{ month_expenses }}</h2>
+          <small>Este mês</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md col-sm-6 mb-3">
+      <div class="card text-white bg-info h-100 shadow-sm border-0 opacity-75">
+        <div class="card-body">
+          <h6 class="card-title text-truncate small text-uppercase fw-bold"><i class="fas fa-coins"></i> Ganho Líquido</h6>
+          <h2 class="mb-0 fw-bold">€{{ month_net }}</h2>
+          <small>Este mês</small>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Saldos -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card border-primary">
+        <div class="card-body">
+          <h5 class="card-title"><i class="fas fa-users"></i> Saldo Agregado de Utilizadores</h5>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted">Total em carteiras de alunos/professores</span>
+            <h3 class="text-primary mb-0">€{{ total_user_balance }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card border-success">
+        <div class="card-body">
+          <h5 class="card-title"><i class="fas fa-building"></i> Saldo da Conta da Escola</h5>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted">Fundos disponíveis para compras de stock</span>
+            <h3 class="text-success mb-0">€{{ school_balance }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráfico de Receitas vs Despesas -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title"><i class="fas fa-chart-pie"></i> Distribuição Financeira</h5>
+          <canvas id="financialChart" style="max-height: 300px;"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transações Recentes -->
+  <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-5">
+    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center flex-wrap">
+      <h5 class="mb-0 fw-bold"><i class="fas fa-history text-primary"></i> Histórico de Atividade</h5>
+      <div class="filter-pills mt-2 mt-sm-0 shadow-sm p-1 rounded-pill bg-light border">
+        <button data-filter="all" class="filter-btn btn btn-sm rounded-pill px-3 {% if current_filter == 'all' %}btn-primary shadow-sm{% else %}btn-link text-muted{% endif %}">Todos</button>
+        <button data-filter="payment" class="filter-btn btn btn-sm rounded-pill px-3 {% if current_filter == 'payment' %}btn-danger text-white shadow-sm{% else %}btn-link text-muted{% endif %}">Vendas</button>
+        <button data-filter="topup" class="filter-btn btn btn-sm rounded-pill px-3 {% if current_filter == 'topup' %}btn-success text-white shadow-sm{% else %}btn-link text-muted{% endif %}">Carreg.</button>
+        <button data-filter="refund" class="filter-btn btn btn-sm rounded-pill px-3 {% if current_filter == 'refund' %}btn-warning text-dark shadow-sm{% else %}btn-link text-muted{% endif %}">Reembolsos</button>
+        <button data-filter="expense" class="filter-btn btn btn-sm rounded-pill px-3 {% if current_filter == 'expense' %}btn-dark text-white shadow-sm{% else %}btn-link text-muted{% endif %}">Stock</button>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="transactions-table">
+          <thead class="bg-light-blue text-uppercase small fw-bold">
+            <tr>
+              <th class="ps-4">Data</th>
+              <th>Utilizador</th>
+              <th>Tipo</th>
+              <th>Montante</th>
+              <th>Descrição</th>
+              <th class="pe-4">Pedido</th>
+            </tr>
+          </thead>
+          <tbody id="transactions-body">
+            {% include 'bar_app/dashboard/partials/_finance_table.html' %}
+          </tbody>
+        </table>
+        <div id="loading-overlay" class="d-none text-center py-5">
+           <div class="spinner-border text-primary" role="status">
+             <span class="visually-hidden">Loading...</span>
+           </div>
+           <p class="mt-2 text-muted">A atualizar...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+  // Configurações globais
+  Chart.defaults.font.size = 24;
+  Chart.defaults.font.weight = '900';
+  Chart.defaults.color = '#000';
+  Chart.defaults.plugins.legend.labels.font.size = 22;
+
+  // Gráfico de receitas vs despesas
+  const ctxFinancial = document.getElementById('financialChart').getContext('2d');
+  const depositsValue = parseFloat('{{ total_deposits }}'.replace(',', '.'));
+  const salesValue = parseFloat('{{ total_sales }}'.replace(',', '.'));
+  const refundsValue = parseFloat('{{ total_refunds }}'.replace(',', '.'));
+  const expensesValue = parseFloat('{{ total_expenses }}'.replace(',', '.'));
+
+  new Chart(ctxFinancial, {
+    type: 'doughnut',
+    data: {
+      labels: ['Depósitos (Saldo)', 'Vendas (Receita)', 'Reembolsos (Saída)', 'Compras (Custo)'],
+      datasets: [{
+        data: [depositsValue, salesValue, refundsValue, expensesValue],
+        backgroundColor: [
+          'rgba(0, 123, 255, 0.8)',     // Primary (blue)
+          'rgba(40, 167, 69, 0.8)',     // Success (green)
+          'rgba(255, 193, 7, 0.8)',     // Warning (yellow)
+          'rgba(52, 58, 64, 0.8)',      // Dark (grey/black)
+        ],
+        borderColor: [
+          'rgba(0, 123, 255, 1)',
+          'rgba(40, 167, 69, 1)',
+          'rgba(255, 193, 7, 1)',
+          'rgba(52, 58, 64, 1)',
+        ],
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+        }
+      }
+    }
+  });
+
+  // AJAX Filtering
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const filter = this.dataset.filter;
+      const tableBody = document.getElementById('transactions-body');
+      const table = document.getElementById('transactions-table');
+      const overlay = document.getElementById('loading-overlay');
+      const exportExcel = document.getElementById('export-excel');
+      const exportPdf = document.getElementById('export-pdf');
+
+      // Update buttons UI
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.className = 'filter-btn btn btn-sm rounded-pill px-3 btn-link text-muted';
+      });
+      
+      const activeClass = {
+        'all': 'btn-primary shadow-sm',
+        'payment': 'btn-danger text-white shadow-sm',
+        'topup': 'btn-success text-white shadow-sm',
+        'refund': 'btn-warning text-dark shadow-sm',
+        'expense': 'btn-dark text-white shadow-sm'
+      }[filter];
+      
+      this.className = `filter-btn btn btn-sm rounded-pill px-3 ${activeClass}`;
+
+      // Update Export Links
+      const csvBase = "{% url 'bar_app:export_transactions_csv' %}";
+      const pdfBase = "{% url 'bar_app:export_transactions_pdf' %}";
+      exportExcel.href = `${csvBase}?tx_type=${filter}`;
+      exportPdf.href = `${pdfBase}?tx_type=${filter}`;
+
+      // Show loading
+      table.style.opacity = '0.3';
+      overlay.classList.remove('d-none');
+
+      // Fetch data
+      fetch(`?tx_type=${filter}`, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.text())
+      .then(html => {
+        tableBody.innerHTML = html;
+        table.style.opacity = '1';
+        overlay.classList.add('d-none');
+      })
+      .catch(err => {
+        console.error('Erro ao filtrar:', err);
+        table.style.opacity = '1';
+        overlay.classList.add('d-none');
+      });
+    });
+  });
+</script>
+
+<style>
+  .card-body h6 {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    opacity: 0.9;
+  }
+
+  .card-body small {
+    display: block;
+    margin-top: 0.5rem;
+    opacity: 0.8;
+    font-size: 0.75rem;
+  }
+
+  /* Premium Styles */
+  .filter-pills .btn-link {
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  
+  .filter-pills .btn-link:hover {
+    background-color: rgba(0,0,0,0.05);
+  }
+
+  .bg-soft-success { background-color: rgba(40, 167, 69, 0.1); }
+  .bg-soft-danger { background-color: rgba(220, 53, 69, 0.1); }
+  .bg-soft-warning { background-color: rgba(255, 193, 7, 0.1); }
+  .bg-soft-info { background-color: rgba(23, 162, 184, 0.1); }
+  .bg-soft-dark { background-color: rgba(52, 58, 64, 0.1); }
+  .bg-soft-secondary { background-color: rgba(108, 117, 125, 0.1); }
+
+  .bg-light-blue { background-color: #f8fbff; }
+  
+  .fade-in {
+    animation: fadeIn 0.4s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .badge-pill {
+    padding: 0.4em 0.8em;
+    border-radius: 50rem;
+    font-weight: 600;
+    font-size: 0.7rem;
+  }
+
+  .table-hover tbody tr {
+    transition: all 0.2s ease;
+  }
+
+  .table-hover tbody tr:hover {
+    background-color: #f8fbff !important;
+    transform: scale(1.002);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
+
+  #transactions-table {
+    transition: opacity 0.23s ease-in-out;
+  }
+</style>
+{% endblock %}
