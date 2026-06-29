@@ -84,10 +84,6 @@ def checkout(request):
                     description=f'Pagamento pedido {order.order_number}'
                 )
 
-                # Adicionar pontos de fidelidade (1 ponto por €)
-                request.user.loyalty_points += int(order.total_amount)
-                request.user.save()
-
                 # Atualizar Saldo da Escola (Venda Efetuada)
                 try:
                     sa, _ = SchoolAccount.objects.get_or_create(pk=1, defaults={'balance': Decimal('0.00')})
@@ -244,16 +240,11 @@ def cancel_order(request, pk):
         if order.payment_method == 'card':
             refund_amount = order.total_amount - fine_amount
             
-            # Reembolso principal
+            # Reembolso principal (Transaction.save() já atualiza o saldo do utilizador)
             Transaction.objects.create(
                 user=request.user, transaction_type='refund', amount=refund_amount,
                 order=order, description=f'Reembolso pedido {order.order_number}' + (f' (Multa 10% aplicada)' if needs_fine else '')
             )
-            
-            # Atualizar saldo do utilizador
-            user = request.user
-            user.balance += refund_amount
-            user.save()
             
             # Reembolsar Saldo da Escola (Venda Cancelada)
             try:
@@ -291,7 +282,8 @@ def profile(request):
         form = UserProfileForm(instance=request.user)
         
     recent_orders = Order.objects.filter(user=request.user)[:5]
-    recent_transactions = Transaction.objects.filter(user=request.user)[:10]
+    recent_transactions = Transaction.objects.filter(user=request.user).select_related('order').order_by('-created_at')[:10]
+    
     context = {
         'form': form,
         'recent_orders': recent_orders, 

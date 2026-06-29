@@ -33,67 +33,75 @@
     <div class="row mb-4">
         <!-- Receita Hoje -->
         <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #198754 0%, #146c43 100%);">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Receita Hoje</h6>
-                            <h3 class="mb-0 fw-bold">€{{ revenue_today }}</h3>
-                        </div>
-                        <div class="fs-1 opacity-50">
-                            <i class="fas fa-money-bill-wave"></i>
+            <a href="{% url 'bar_app:finance_summary' %}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #198754 0%, #146c43 100%); cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Receita Hoje</h6>
+                                <h3 class="mb-0 fw-bold">€{{ revenue_today }}</h3>
+                            </div>
+                            <div class="fs-1 opacity-50">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
         <!-- Pedidos Hoje -->
         <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Pedidos Hoje</h6>
-                            <h3 class="mb-0 fw-bold">{{ total_orders_today }}</h3>
-                        </div>
-                        <div class="fs-1 opacity-50">
-                            <i class="fas fa-shopping-cart"></i>
+            <a href="{% url 'bar_app:manage_orders' %}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Pedidos Hoje</h6>
+                                <h3 class="mb-0 fw-bold">{{ total_orders_today }}</h3>
+                            </div>
+                            <div class="fs-1 opacity-50">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
         <!-- Pendentes -->
         <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #fd7e14 0%, #e8590c 100%);">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Pendentes</h6>
-                            <h3 class="mb-0 fw-bold">{{ pending_orders }}</h3>
-                        </div>
-                        <div class="fs-1 opacity-50">
-                            <i class="fas fa-clock"></i>
+            <a href="{% url 'bar_app:manage_orders' %}?status=pending" class="text-decoration-none">
+                <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #fd7e14 0%, #e8590c 100%); cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Pendentes</h6>
+                                <h3 class="mb-0 fw-bold">{{ pending_orders }}</h3>
+                            </div>
+                            <div class="fs-1 opacity-50">
+                                <i class="fas fa-clock"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
         <!-- Saldo Escola -->
         <div class="col-md-3 mb-3">
-            <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #0dcaf0 0%, #0bacce 100%);">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Saldo Escola</h6>
-                            <h3 class="mb-0 fw-bold">€{{ school_balance }}</h3>
-                        </div>
-                        <div class="fs-1 opacity-50">
-                            <i class="fas fa-euro-sign"></i>
+            <a href="{% url 'bar_app:finance_summary' %}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #0dcaf0 0%, #0bacce 100%); cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Saldo Escola</h6>
+                                <h3 class="mb-0 fw-bold">€{{ school_balance }}</h3>
+                            </div>
+                            <div class="fs-1 opacity-50">
+                                <i class="fas fa-euro-sign"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
@@ -101,51 +109,57 @@
     <div class="row mb-4">
         <!-- Valor em Stock -->
         <div class="col-md-4 mb-3">
-            <div class="card border-0 border-start border-4 border-secondary shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title text-muted text-uppercase fw-bold mb-1">Valor Gasto em Stock</h6>
-                            <h3 class="mb-0 text-secondary fw-bold">€{{ total_spent_on_stock }}</h3>
-                        </div>
-                        <div class="fs-1 text-secondary opacity-50">
-                            <i class="fas fa-boxes"></i>
+            <a href="{% url 'bar_app:manage_stock' %}" class="text-decoration-none">
+                <div class="card border-0 border-start border-4 border-secondary shadow-sm h-100" style="cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-muted text-uppercase fw-bold mb-1">Valor Gasto em Stock</h6>
+                                <h3 class="mb-0 text-secondary fw-bold">€{{ total_spent_on_stock }}</h3>
+                            </div>
+                            <div class="fs-1 text-secondary opacity-50">
+                                <i class="fas fa-boxes"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
         <!-- Lucro Potencial -->
         <div class="col-md-4 mb-3">
-            <div class="card border-0 border-start border-4 border-success shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title text-muted text-uppercase fw-bold mb-1">Lucro Potencial</h6>
-                            <h3 class="mb-0 text-success fw-bold">€{{ potential_profit }}</h3>
-                        </div>
-                        <div class="fs-1 text-success opacity-50">
-                            <i class="fas fa-hand-holding-usd"></i>
+            <a href="{% url 'bar_app:finance_summary' %}" class="text-decoration-none">
+                <div class="card border-0 border-start border-4 border-success shadow-sm h-100" style="cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-muted text-uppercase fw-bold mb-1">Lucro Potencial</h6>
+                                <h3 class="mb-0 text-success fw-bold">€{{ potential_profit }}</h3>
+                            </div>
+                            <div class="fs-1 text-success opacity-50">
+                                <i class="fas fa-hand-holding-usd"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
         <!-- Ticket Médio Hoje -->
         <div class="col-md-4 mb-3">
-            <div class="card border-0 border-start border-4 border-info shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="card-title text-muted text-uppercase fw-bold mb-1">Ticket Médio Hoje</h6>
-                            <h3 class="mb-0 text-info fw-bold">€{{ aov_today }}</h3>
-                        </div>
-                        <div class="fs-1 text-info opacity-50">
-                            <i class="fas fa-receipt"></i>
+            <a href="{% url 'bar_app:finance_summary' %}" class="text-decoration-none">
+                <div class="card border-0 border-start border-4 border-info shadow-sm h-100" style="cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-muted text-uppercase fw-bold mb-1">Ticket Médio Hoje</h6>
+                                <h3 class="mb-0 text-info fw-bold">€{{ aov_today }}</h3>
+                            </div>
+                            <div class="fs-1 text-info opacity-50">
+                                <i class="fas fa-receipt"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 

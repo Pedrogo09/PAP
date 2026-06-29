@@ -35,7 +35,6 @@ class User(AbstractUser):
     phone = models.CharField(max_length=15, blank=True, verbose_name='Telemóvel')
     photo = models.ImageField(upload_to='users/', blank=True, null=True, verbose_name='Foto')
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Saldo')
-    loyalty_points = models.IntegerField(default=0, help_text="Pontos de fidelidade (1€ = 1 ponto)", verbose_name='Pontos de Fidelidade')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='Criado em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
     escalao = models.CharField(max_length=10, choices=ESCALAO_CHOICES, default='none', verbose_name='Escalão ASE')

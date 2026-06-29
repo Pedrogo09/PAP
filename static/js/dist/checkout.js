@@ -129,6 +129,19 @@ class CheckoutManager {
             console.log('Time validation:', { time, openTime, closeTime });
             console.log('Time comparison:', time >= openTime, time <= closeTime);
 
+            // Verificar se a data/hora está no passado
+            const now = new Date();
+            const selectedDateTime = new Date(dateInput);
+            selectedDateTime.setHours(parseInt(hour), parseInt(minute), 0, 0);
+            
+            if (selectedDateTime <= now) {
+                console.log('Time is in the past');
+                this.timeWarning.classList.remove('d-none');
+                this.timeWarning.innerHTML = '<i class="fas fa-exclamation-circle"></i> Não pode selecionar uma hora no passado!';
+                this.timeHiddenInput.value = '';
+                return;
+            }
+
             if (time >= openTime && time <= closeTime) {
                 console.log('Time is valid');
                 this.timeWarning.classList.add('d-none');
@@ -136,10 +149,7 @@ class CheckoutManager {
             } else {
                 console.log('Time is invalid');
                 this.timeWarning.classList.remove('d-none');
-                const availableHoursElement = document.getElementById('availableHours');
-                if (availableHoursElement) {
-                    availableHoursElement.textContent = `${openTime} às ${closeTime}`;
-                }
+                this.timeWarning.innerHTML = `<i class="fas fa-exclamation-circle"></i> Este horário não está disponível. Horários: ${openTime} às ${closeTime}`;
                 this.timeHiddenInput.value = '';
             }
         } else {

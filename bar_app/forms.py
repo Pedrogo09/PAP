@@ -145,6 +145,26 @@ class UserProfileForm(forms.ModelForm):
         ('Peixe', 'Peixe'),
     ]
     
+    COUNTRY_CHOICES = [
+        ('+351', '🇵🇹 Portugal (+351)'),
+        ('+34', '🇪🇸 Espanha (+34)'),
+        ('+33', '🇫🇷 França (+33)'),
+        ('+44', '🇬🇧 Reino Unido (+44)'),
+        ('+49', '🇩🇪 Alemanha (+49)'),
+        ('+39', '🇮🇹 Itália (+39)'),
+        ('+31', '🇳🇱 Holanda (+31)'),
+        ('+32', '🇧🇪 Bélgica (+32)'),
+        ('+41', '🇨🇭 Suíça (+41)'),
+        ('+352', '🇱🇺 Luxemburgo (+352)'),
+    ]
+    
+    country_code = forms.ChoiceField(
+        choices=COUNTRY_CHOICES,
+        required=False,
+        label='Código do País',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
     selected_allergens = forms.MultipleChoiceField(
         choices=ALLERGEN_CHOICES,
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
@@ -158,18 +178,54 @@ class UserProfileForm(forms.ModelForm):
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 912345678'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 912345678', 'pattern': '[0-9]*', 'inputmode': 'numeric'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.allergens:
             self.fields['selected_allergens'].initial = [a.strip() for a in self.instance.allergens.split(',') if a.strip()]
+        
+        # Extract country code from existing phone number
+        if self.instance and self.instance.phone:
+            phone = self.instance.phone.strip()
+            for code, _ in self.COUNTRY_CHOICES:
+                if phone.startswith(code):
+                    self.fields['country_code'].initial = code
+                    self.fields['phone'].initial = phone[len(code):].strip()
+                    break
+            else:
+                # If no country code found, assume Portugal
+                if phone.startswith('+'):
+                    self.fields['phone'].initial = phone[1:].strip()
+                else:
+                    self.fields['phone'].initial = phone
+                self.fields['country_code'].initial = '+351'
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone', '')
+        if phone:
+            # Only allow digits
+            if not phone.isdigit():
+                raise forms.ValidationError('O número de telefone só pode conter dígitos.')
+            # Validate length (9 digits for Portugal, adjust as needed)
+            if len(phone) < 9 or len(phone) > 15:
+                raise forms.ValidationError('O número de telefone deve ter entre 9 e 15 dígitos.')
+        return phone
 
     def save(self, commit=True):
         user = super().save(commit=False)
         selected = self.cleaned_data.get('selected_allergens', [])
         user.allergens = ", ".join(selected)
+        
+        # Combine country code and phone number
+        country_code = self.cleaned_data.get('country_code', '+351')
+        phone = self.cleaned_data.get('phone', '')
+        if phone:
+            user.phone = f"{country_code}{phone}"
+        else:
+            user.phone = ''
+        
         if commit:
             user.save()
         return user

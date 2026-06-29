@@ -63,7 +63,14 @@
                         </div>
                         <div class="mb-2">
                             <label class="form-label small fw-bold mb-1">Telefone</label>
-                            {{ form.phone }}
+                            <div class="row g-2">
+                                <div class="col-5">
+                                    {{ form.country_code }}
+                                </div>
+                                <div class="col-7">
+                                    {{ form.phone }}
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="mb-3">
@@ -181,13 +188,15 @@
                                         <span class="badge bg-success">Carregamento</span>
                                         {% elif transaction.transaction_type == 'payment' %}
                                         <span class="badge bg-danger">Pagamento</span>
-                                        {% else %}
+                                        {% elif transaction.transaction_type == 'refund' %}
                                         <span class="badge bg-info">Reembolso</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ transaction.description }}</td>
                                     <td>
                                         {% if transaction.transaction_type == 'topup' %}
+                                        <span class="text-success">+€{{ transaction.amount }}</span>
+                                        {% elif transaction.transaction_type == 'refund' %}
                                         <span class="text-success">+€{{ transaction.amount }}</span>
                                         {% else %}
                                         <span class="text-danger">-€{{ transaction.amount }}</span>
