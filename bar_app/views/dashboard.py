@@ -10,6 +10,7 @@ import calendar
 import csv
 from django.http import HttpResponse
 from django.db.models.functions import TruncMonth
+from django.db import transaction
 import io
 import json
 from reportlab.lib import colors
@@ -47,7 +48,7 @@ def dashboard(request):
     
     aov_today = revenue_today / total_orders_today if total_orders_today > 0 else Decimal('0.00')
 
-    all_products = Product.objects.filter(is_available=True)
+    all_products = Product.objects.filter(is_available=True).select_related('category')
     # Valor gasto em stock (Preço de custo)
     # Se purchase_price estiver definido, usa-o. Caso contrário, estima 50% do preço de venda.
     total_stock_cost = sum((p.stock * (p.purchase_price if p.purchase_price is not None else (p.price * Decimal('0.50')))) for p in all_products)
@@ -260,9 +261,10 @@ def manage_stock(request):
 
 @login_required
 @user_passes_test(is_staff_user)
+@transaction.atomic
 def replenish_stock(request, product_id):
     """Repor stock de um produto"""
-    product = get_object_or_404(Product, pk=product_id)
+    product = get_object_or_404(Product.objects.select_for_update(), pk=product_id)
     if request.method == 'POST':
         quantity = request.POST.get('quantity')
         try:
@@ -283,12 +285,13 @@ def replenish_stock(request, product_id):
 
 @login_required
 @user_passes_test(is_staff_user)
+@transaction.atomic
 def add_stock_dashboard(request):
     """Adicionar stock a um produto do painel (dashboard)"""
     if request.method == 'POST':
         form = AddStockForm(request.POST)
         if form.is_valid():
-            product = form.cleaned_data['product']
+            product = Product.objects.select_for_update().get(pk=form.cleaned_data['product'].pk)
             quantity = form.cleaned_data['quantity']
             movement = StockMovement(
                 product=product, movement_type='in', quantity=quantity,

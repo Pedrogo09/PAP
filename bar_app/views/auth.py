@@ -92,10 +92,10 @@ def register(request):
                 is_active=False
             )
             
-            if user_type in ['staff', 'admin']:
-                user.is_staff = True
-            if user_type == 'admin':
-                user.is_superuser = True
+            # NUNCA permitir criar staff/admin via registo público
+            # Apenas superuser pode promover utilizadores a staff/admin via Django Admin
+            user.is_staff = False
+            user.is_superuser = False
             user.save()
 
             from ..utils import make_verification_token

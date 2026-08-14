@@ -1,7 +1,7 @@
 from django.test import TestCase
 from decimal import Decimal
 from django.utils import timezone
-from .models import User, Product, Category, Transaction, StockMovement, SchoolAccount
+from .models import User, Product, Category, Transaction, StockMovement, SchoolAccount, Order
 
 class MultiUserFinanceTestCase(TestCase):
     def setUp(self):
@@ -87,3 +87,56 @@ class MultiUserFinanceTestCase(TestCase):
         
         self.school_account.refresh_from_db()
         self.assertEqual(self.school_account.balance, initial_school_balance - expected_cost)
+
+    def test_user_cannot_access_other_users_order(self):
+        """Verificar que o modelo Order tem relação correta com user"""
+        student2 = User.objects.create_user(
+            username='aluno2', email='aluno2@gmail.com', password='pass123',
+            user_type='student', balance=Decimal('30.00')
+        )
+        
+        order = Order.objects.create(
+            user=self.student,
+            order_number='TEST-001',
+            status='pending',
+            payment_method='card',
+            total_amount=Decimal('5.00'),
+            scheduled_date=timezone.now().date(),
+            scheduled_time=timezone.now().time()
+        )
+        
+        # Verificar que o pedido pertence ao student
+        self.assertEqual(order.user, self.student)
+        
+        # Tentar buscar pedido de outro utilizador deve retornar None
+        order_from_student2 = Order.objects.filter(pk=order.pk, user=student2).first()
+        self.assertIsNone(order_from_student2)
+
+    def test_registration_security(self):
+        """Verificar que utilizadores criados via registo não são staff por defeito"""
+        user = User.objects.create_user(
+            username='testuser',
+            email='test@gmail.com',
+            password='password123',
+            user_type='student'
+        )
+        
+        # Por defeito, não deve ser staff
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+
+    def test_insufficient_stock_detection(self):
+        """Verificar deteção de stock insuficiente"""
+        self.product.stock = 0
+        self.product.save()
+        
+        self.assertEqual(self.product.stock, 0)
+        self.assertFalse(self.product.is_in_stock())
+
+    def test_insufficient_balance_detection(self):
+        """Verificar deteção de saldo insuficiente"""
+        self.student.balance = Decimal('0.00')
+        self.student.save()
+        
+        self.assertEqual(self.student.balance, Decimal('0.00'))
+        self.assertFalse(self.student.can_place_order())

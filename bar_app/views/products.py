@@ -60,9 +60,13 @@ def menu(request):
         favorite_ids = FavoriteProduct.objects.filter(user=request.user).values_list('product_id', flat=True)
         products = products.filter(id__in=favorite_ids)
         
+    user_favorites = []
     if request.user.is_authenticated:
         user_favorites = list(FavoriteProduct.objects.filter(user=request.user).values_list('product_id', flat=True))
 
+    # Prefetch related data to avoid N+1 queries
+    products = products.select_related('category')
+    
     for p in products:
         p.current_price = p.get_price_for_user(request.user)
         p.allergen_conflicts = p.get_user_allergens_conflict(request.user)

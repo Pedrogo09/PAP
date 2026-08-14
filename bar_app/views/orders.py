@@ -9,15 +9,17 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.urls import reverse
+from django.db import transaction
 from ..models import (
     Order, OrderItem, Transaction, StockMovement, 
-    Product, WeekdayAvailability, SchoolAccount, SchoolTransaction
+    Product, WeekdayAvailability, SchoolAccount, SchoolTransaction, User
 )
 from ..forms import OrderForm, TopUpForm, OrderReviewForm
 from ..utils import generate_topup_pdf, generate_order_pdf
 from .auth import is_staff_user
 
 @login_required
+@transaction.atomic
 def checkout(request):
     """Finalizar pedido"""
     cart = request.session.get('cart', {})
@@ -42,7 +44,8 @@ def checkout(request):
             total = 0
             for product_id, quantity in cart.items():
                 try:
-                    product = Product.objects.get(pk=product_id)
+                    # Usar select_for_update para prevenir race conditions
+                    product = Product.objects.select_for_update().get(pk=product_id)
                     if product.stock < quantity:
                         messages.error(request, f'Stock insuficiente para {product.name}.')
                         order.delete()
@@ -71,6 +74,8 @@ def checkout(request):
             order.calculate_total()
             
             if order.payment_method == 'card':
+                # Recarregar utilizador para garantir saldo atualizado
+                request.user = User.objects.select_for_update().get(pk=request.user.pk)
                 if request.user.balance < order.total_amount:
                     messages.error(request, 'Saldo insuficiente.')
                     order.delete()
@@ -86,7 +91,7 @@ def checkout(request):
 
                 # Atualizar Saldo da Escola (Venda Efetuada)
                 try:
-                    sa, _ = SchoolAccount.objects.get_or_create(pk=1, defaults={'balance': Decimal('0.00')})
+                    sa, _ = SchoolAccount.objects.select_for_update().get_or_create(pk=1, defaults={'balance': Decimal('0.00')})
                     sa.balance += order.total_amount
                     sa.save()
                     SchoolTransaction.objects.create(
@@ -124,7 +129,7 @@ def checkout(request):
                     description=f'Pagamento via Multibanco - Pedido {order.order_number}'
                 )
                 try:
-                    sa, _ = SchoolAccount.objects.get_or_create(pk=1, defaults={'balance': Decimal('0.00')})
+                    sa, _ = SchoolAccount.objects.select_for_update().get_or_create(pk=1, defaults={'balance': Decimal('0.00')})
                     sa.balance += order.total_amount
                     sa.save()
                     SchoolTransaction.objects.create(
@@ -222,6 +227,7 @@ def order_detail(request, pk):
     return render(request, 'bar_app/order_detail.html', {'order': order})
 
 @login_required
+@transaction.atomic
 def cancel_order(request, pk):
     """Cancelar um pedido"""
     order = get_object_or_404(Order, pk=pk, user=request.user)
@@ -230,10 +236,11 @@ def cancel_order(request, pk):
         order.status = 'cancelled'
         order.save()
         
-        # Repor stock
-        for item in order.items.all():
+        # Repor stock com select_for_update para prevenir race conditions
+        for item in order.items.select_related('product').all():
+            product = Product.objects.select_for_update().get(pk=item.product.pk)
             StockMovement.objects.create(
-                product=item.product, movement_type='in', quantity=item.quantity,
+                product=product, movement_type='in', quantity=item.quantity,
                 reason=f'Cancelamento pedido {order.order_number}', created_by=request.user
             )
             
@@ -248,7 +255,7 @@ def cancel_order(request, pk):
             
             # Reembolsar Saldo da Escola (Venda Cancelada)
             try:
-                sa = SchoolAccount.objects.get(pk=1)
+                sa = SchoolAccount.objects.select_for_update().get(pk=1)
                 sa.balance -= refund_amount
                 sa.save()
                 SchoolTransaction.objects.create(
@@ -292,6 +299,7 @@ def profile(request):
     return render(request, 'bar_app/profile.html', context)
 
 @login_required
+@transaction.atomic
 def topup(request):
     """Carregar saldo"""
     step = request.GET.get('step') or request.POST.get('step') or '1'
@@ -329,7 +337,7 @@ def topup(request):
 
             # Registar entrada no saldo da escola para controlo de caixa/banco
             try:
-                sa, _ = SchoolAccount.objects.get_or_create(pk=1, defaults={'balance': Decimal('0.00')})
+                sa, _ = SchoolAccount.objects.select_for_update().get_or_create(pk=1, defaults={'balance': Decimal('0.00')})
                 sa.balance += amount
                 sa.save()
                 SchoolTransaction.objects.create(
