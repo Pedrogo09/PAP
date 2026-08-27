@@ -3,7 +3,7 @@ import json
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.conf import settings
 from django.utils import timezone
@@ -224,7 +224,23 @@ def order_detail(request, pk):
     if order.user != request.user and not is_staff_user(request.user):
         messages.error(request, 'Não tem permissão para ver este pedido.')
         return redirect('bar_app:order_list')
-    return render(request, 'bar_app/order_detail.html', {'order': order})
+    
+    # Gerar QR Code para o pedido
+    qr_code = None
+    if order.qr_token:
+        from ..utils import generate_qr_code_svg
+        qr_code = generate_qr_code_svg(order.qr_token)
+    
+    # Obter turma do utilizador
+    turma = getattr(order.user, 'turma', '')
+    if not turma and hasattr(order.user, 'student') and hasattr(order.user.student, 'class_name'):
+        turma = order.user.student.class_name
+    
+    return render(request, 'bar_app/order_detail.html', {
+        'order': order,
+        'qr_code': qr_code,
+        'turma': turma
+    })
 
 @login_required
 @transaction.atomic
@@ -434,3 +450,158 @@ def check_all_ready_orders(request):
             'total': f"{order.total_amount:.2f}".replace('.', ',')
         })
     return JsonResponse({'ready_orders': data})
+
+
+@login_required
+@user_passes_test(is_staff_user)
+def validate_qr_token(request):
+    """Valida token QR Code para levantamento de pedido (apenas staff)"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método não permitido'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        token = data.get('token', '').strip()
+    except:
+        return JsonResponse({'error': 'Dados inválidos'}, status=400)
+    
+    # Remover prefixo se existir
+    if token.startswith('ORDER_TOKEN:'):
+        token = token[12:]
+    
+    # Buscar pedido pelo token
+    try:
+        order = Order.objects.select_for_update().get(qr_token=token)
+    except Order.DoesNotExist:
+        return JsonResponse({'error': 'Token inválido - pedido não encontrado'}, status=404)
+    
+    # Verificar se já foi levantado
+    if order.picked_up_at:
+        turma = getattr(order.user, 'turma', '')
+        if not turma and hasattr(order.user, 'student') and hasattr(order.user.student, 'class_name'):
+            turma = order.user.student.class_name
+        
+        return JsonResponse({
+            'error': 'Pedido já levantado',
+            'order': {
+                'order_number': order.order_number,
+                'user_name': order.user.get_full_name() or order.user.username,
+                'turma': turma,
+                'picked_up_at': order.picked_up_at.strftime('%d/%m/%Y %H:%M') if order.picked_up_at else None,
+                'picked_up_by': order.picked_up_by.get_full_name() if order.picked_up_by else None
+            }
+        }, status=400)
+    
+    # Verificar se pedido foi cancelado
+    if order.status == 'cancelled':
+        return JsonResponse({'error': 'Pedido cancelado - não pode ser levantado'}, status=400)
+    
+    # Verificar se pedido está em estado válido para levantamento
+    if order.status not in ['ready', 'confirmed', 'preparing']:
+        return JsonResponse({'error': f'Pedido em estado "{order.get_status_display()}" - não está pronto para levantamento'}, status=400)
+    
+    # Obter turma do utilizador
+    turma = getattr(order.user, 'turma', '')
+    if not turma and hasattr(order.user, 'student') and hasattr(order.user.student, 'class_name'):
+        turma = order.user.student.class_name
+    
+    # Retornar dados do pedido para confirmação
+    items_data = []
+    for item in order.items.all():
+        items_data.append({
+            'product_name': item.product.name,
+            'quantity': item.quantity,
+            'unit_price': str(item.unit_price),
+            'subtotal': str(item.subtotal)
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'order': {
+            'id': order.id,
+            'order_number': order.order_number,
+            'user_name': order.user.get_full_name() or order.user.username,
+            'turma': turma,
+            'status': order.status,
+            'status_display': order.get_status_display(),
+            'total_amount': str(order.total_amount),
+            'scheduled_date': order.scheduled_date.strftime('%d/%m/%Y') if order.scheduled_date else None,
+            'scheduled_time': order.scheduled_time.strftime('%H:%M') if order.scheduled_time else None,
+            'items': items_data
+        }
+    })
+
+
+@login_required
+@user_passes_test(is_staff_user)
+@transaction.atomic
+def confirm_pickup(request):
+    """Confirma levantamento de pedido (apenas staff) - operação atômica"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método não permitido'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        token = data.get('token', '').strip()
+    except:
+        return JsonResponse({'error': 'Dados inválidos'}, status=400)
+    
+    # Remover prefixo se existir
+    if token.startswith('ORDER_TOKEN:'):
+        token = token[12:]
+    
+    # Buscar pedido com lock para prevenir race conditions
+    try:
+        order = Order.objects.select_for_update().get(qr_token=token)
+    except Order.DoesNotExist:
+        return JsonResponse({'error': 'Token inválido - pedido não encontrado'}, status=404)
+    
+    # Verificar novamente se já foi levantado (double-check com lock)
+    if order.picked_up_at:
+        turma = getattr(order.user, 'turma', '')
+        if not turma and hasattr(order.user, 'student') and hasattr(order.user.student, 'class_name'):
+            turma = order.user.student.class_name
+        
+        return JsonResponse({
+            'error': 'Pedido já levantado',
+            'order': {
+                'order_number': order.order_number,
+                'user_name': order.user.get_full_name() or order.user.username,
+                'turma': turma,
+                'picked_up_at': order.picked_up_at.strftime('%d/%m/%Y %H:%M') if order.picked_up_at else None
+            }
+        }, status=400)
+    
+    # Verificar se pedido foi cancelado
+    if order.status == 'cancelled':
+        return JsonResponse({'error': 'Pedido cancelado - não pode ser levantado'}, status=400)
+    
+    # Confirmar levantamento
+    order.status = 'delivered'
+    order.picked_up_at = timezone.now()
+    order.picked_up_by = request.user
+    order.save()
+    
+    # Obter turma para resposta
+    turma = getattr(order.user, 'turma', '')
+    if not turma and hasattr(order.user, 'student') and hasattr(order.user.student, 'class_name'):
+        turma = order.user.student.class_name
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Levantamento confirmado com sucesso',
+        'order': {
+            'order_number': order.order_number,
+            'user_name': order.user.get_full_name() or order.user.username,
+            'turma': turma,
+            'picked_up_at': order.picked_up_at.strftime('%d/%m/%Y %H:%M'),
+            'picked_up_by': request.user.get_full_name() or request.user.username
+        }
+    })
+
+
+@login_required
+@user_passes_test(is_staff_user)
+def validate_qr_page(request):
+    """Página de validação QR Code para staff"""
+    return render(request, 'bar_app/dashboard/validate_qr.html')

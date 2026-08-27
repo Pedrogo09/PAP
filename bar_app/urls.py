@@ -67,4 +67,8 @@ urlpatterns = [
     path('ai-chat/', views.ai_chat_response, name='ai_chat_response'),
     # Polling de Pedidos Prontos
     path('orders/check-ready/', views.check_all_ready_orders, name='check_all_ready_orders'),
+    # QR Code Validation
+    path('dashboard/validate-qr/', views.validate_qr_token, name='validate_qr_token'),
+    path('dashboard/confirm-pickup/', views.confirm_pickup, name='confirm_pickup'),
+    path('dashboard/validate-qr-page/', views.validate_qr_page, name='validate_qr_page'),
 ]

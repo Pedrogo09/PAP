@@ -9,6 +9,7 @@ from decimal import Decimal
 from datetime import datetime
 import random
 import string
+import secrets
 from django.utils import timezone
 
 
@@ -39,6 +40,7 @@ class User(AbstractUser):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
     escalao = models.CharField(max_length=10, choices=ESCALAO_CHOICES, default='none', verbose_name='Escalão ASE')
     allergens = models.CharField(max_length=255, blank=True, default='', verbose_name='Alérgenos / Restrições', help_text='Alérgenos separados por vírgula (ex: Glúten, Lactose)')
+    turma = models.CharField(max_length=10, blank=True, verbose_name='Turma', help_text='Turma do utilizador (ex: 12PI)')
     
     groups = models.ManyToManyField(
         'auth.Group',
@@ -257,6 +259,9 @@ class Order(models.Model):
     is_priority = models.BooleanField(default=False, verbose_name='Prioritário')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
+    qr_token = models.CharField(max_length=64, unique=True, blank=True, null=True, verbose_name='Token QR Code')
+    picked_up_at = models.DateTimeField(blank=True, null=True, verbose_name='Levantado em')
+    picked_up_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='picked_up_orders', verbose_name='Levantado por')
     
     class Meta:
         verbose_name = 'Pedido'
@@ -279,6 +284,10 @@ class Order(models.Model):
             # Gerar número de pedido único curto (Ex: ORD-A1B2C)
             random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
             self.order_number = f"ORD-{random_str}"
+        
+        # Gerar token QR seguro para novos pedidos
+        if is_new and not self.qr_token:
+            self.qr_token = secrets.token_urlsafe(32)
         
         # Definir prioridade baseada no tipo de utilizador
         self.is_priority = self.user.is_priority_user()
