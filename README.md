@@ -1,246 +1,97 @@
-@echo off
-setlocal EnableDelayedExpansion
+# 🍽️ Bar Escolar - Sistema de Gestão (PAP)
 
-:: ===================================================
-:: CONFIGURACOES
-:: ===================================================
-chcp 65001 > nul
+Sistema de gestão de bar escolar desenvolvido em **Django 5.2**, com suporte a pedidos online, pagamentos por saldo, gestão de stock e relatórios.
 
-set "REPO=https://github.com/Pedrogo09/PAP.git"
-set "API=https://api.github.com/repos/Pedrogo09/PAP/languages"
-set "TEMP_JSON=%TEMP%\pap_languages.json"
+---
 
-echo ===================================================
-echo   ATUALIZAR PROJETO NO GITHUB - BAR ESCOLAR PAP
-echo ===================================================
-echo.
+## 📊 Linguagens do Projeto
 
-:: ===================================================
-:: VERIFICAR GIT
-:: ===================================================
-git --version >nul 2>&1
-if %errorlevel% neq 0 (
-echo [ERRO] O Git nao esta instalado ou nao esta no PATH do Windows!
-echo Por favor, instala o Git para continuar.
-pause
-exit /b
-)
+* 🟠 **HTML:** 44.3%
 
-:: ===================================================
-:: INICIALIZAR REPOSITORIO
-:: ===================================================
-if not exist .git (
-echo [INFO] Inicializando repositorio Git local...
-git init
-git branch -M main
-)
+* 🐍 **Python:** 43.2%
 
-:: ===================================================
-:: CONFIGURAR REMOTE
-:: ===================================================
-git remote get-url origin >nul 2>&1
+* 🎨 **CSS:** 5.0%
 
-if %errorlevel% neq 0 (
-echo [INFO] A adicionar o repositorio remoto origin...
-git remote add origin %REPO%
-) else (
-echo [INFO] A atualizar o endereco do repositorio remoto origin...
-git remote set-url origin %REPO%
-)
+* 🔵 **TypeScript:** 5.8%
 
-echo.
+* ⚪ **Outros:** 1.7%
 
-:: ===================================================
-:: ADICIONAR ALTERACOES
-:: ===================================================
-echo Adicionando alteracoes...
+---
+
+## 🚀 Como Executar (forma rápida)
+
+1. **Executar os scripts na ordem seguinte**
+
+   ```powershell
+   .\start.bat
+   .\up.bat
+   ```
+
+---
+
+## 🚀 Como Executar (sem utilizar scripts)
+
+1. **Ativar Ambiente Virtual:**
+
+   ```powershell
+   .\venv\Scripts\activate
+   ```
+
+2. **Instalar Dependências:**
+
+   ```powershell
+   pip install -r requirements.txt
+   ```
+
+3. **Migrar Base de Dados:**
+
+   ```powershell
+   python manage.py migrate
+   ```
+
+4. **Iniciar Servidor:**
+
+   ```powershell
+   python manage.py runserver
+   ```
+
+   Aceda em: http://127.0.0.1:8000
+
+---
+
+## 🔗 Como Ligar ao GitHub e Atualizar
+
+Se ainda não tens o repositório ligado:
+
+1. **Criar Repositório no GitHub** (sem README nem .gitignore).
+
+2. **No terminal do projeto:**
+
+   ```powershell
+   git init
+   git remote add origin https://github.com/O_TEU_USER/O_TEU_REPO.git
+   git add .
+   git commit -m "Primeiro commit"
+   git branch -M main
+   git push -u origin main
+   ```
+
+### 🔄 Como Atualizar o Repositório (Sempre que fizeres mudanças):
+
+```powershell
+# 1. Adicionar todas as mudanças
+
 git add .
 
-echo.
+# 2. Criar uma nota sobre o que mudaste
 
-:: ===================================================
-:: MENSAGEM DO COMMIT
-:: ===================================================
-set "commit_msg="
-set /p commit_msg="Escreve a mensagem do commit (ou Enter para 'Atualizacao automatica'): "
+git commit -m "Atualização do projeto"
 
-if "%commit_msg%"=="" (
-set "commit_msg=Atualizacao automatica: %date% %time%"
-)
-
-echo.
-
-:: ===================================================
-:: COMMIT
-:: ===================================================
-echo Efetuando commit...
-git commit -m "%commit_msg%"
-
-echo.
-
-:: ===================================================
-:: PULL
-:: ===================================================
-echo A sincronizar alteracoes do GitHub...
-
-git pull origin main --allow-unrelated-histories -X ours --no-edit
-
-if %errorlevel% neq 0 (
-echo.
-echo [ERRO] Falha ao sincronizar com o GitHub.
-echo.
-pause
-exit /b
-)
-
-echo.
-
-:: ===================================================
-:: PRIMEIRO PUSH
-:: ===================================================
-echo A enviar para o GitHub...
-
-git push -u origin main
-
-if %errorlevel% neq 0 (
-echo.
-echo ===================================================
-echo [ERRO] Falha ao enviar para o GitHub.
-echo ===================================================
-echo.
-pause
-exit /b
-)
-
-echo.
-echo [SUCESSO] Projeto enviado para o GitHub!
-echo.
-
-:: ===================================================
-:: OBTER NOVAS LINGUAGENS DO GITHUB
-:: ===================================================
-echo ===================================================
-echo   A ATUALIZAR PERCENTAGENS DAS LINGUAGENS
-echo ===================================================
-echo.
-
-echo [INFO] A consultar o GitHub...
-
-curl -L -s -o "%TEMP_JSON%" ^
--H "Accept: application/vnd.github+json" ^
-"%API%"
-
-if not exist "%TEMP_JSON%" (
-echo [AVISO] Nao foi possivel consultar a API do GitHub.
-goto FINAL
-)
-
-:: ===================================================
-:: CALCULAR PERCENTAGENS
-:: ===================================================
-for /f "tokens=1,2 delims==" %%A in ('powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-"$json = Get-Content -Raw '%TEMP_JSON%' | ConvertFrom-Json; ^
-$total = 0; ^
-$json.PSObject.Properties | ForEach-Object { $total += [double]$_.Value }; ^
-if ($total -eq 0) { exit 1 }; ^
-$html = if ($json.HTML) { [math]::Round(($json.HTML / $total) * 100, 1) } else { 0 }; ^
-$python = if ($json.Python) { [math]::Round(($json.Python / $total) * 100, 1) } else { 0 }; ^
-$css = if ($json.CSS) { [math]::Round(($json.CSS / $total) * 100, 1) } else { 0 }; ^
-$typescript = if ($json.TypeScript) { [math]::Round(($json.TypeScript / $total) * 100, 1) } else { 0 }; ^
-$other = [math]::Round(100 - $html - $python - $css - $typescript, 1); ^
-Write-Output ('HTML=' + $html); ^
-Write-Output ('Python=' + $python); ^
-Write-Output ('CSS=' + $css); ^
-Write-Output ('TypeScript=' + $typescript); ^
-Write-Output ('Other=' + $other)"') do (
-set "%%A=%%B"
-)
-
-if not defined HTML (
-echo [AVISO] Nao foi possivel calcular as percentagens.
-goto FINAL
-)
-
-echo.
-echo Percentagens encontradas:
-echo.
-echo   🟠 HTML:       !HTML!%%
-echo   🐍 Python:     !Python!%%
-echo   🎨 CSS:        !CSS!%%
-echo   🔵 TypeScript: !TypeScript!%%
-echo   ⚪ Outros:     !Other!%%
-echo.
-
-:: ===================================================
-:: ATUALIZAR README
-:: ===================================================
-echo [INFO] A atualizar README.md...
-
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-"$path = 'README.md'; ^
-$content = Get-Content -Raw -Encoding UTF8 $path; ^
-$content = [regex]::Replace($content, '(?m)^- 🟠 **HTML:**.*$', '- 🟠 **HTML:** !HTML!%%'); ^
-$content = [regex]::Replace($content, '(?m)^- 🐍 **Python:**.*$', '- 🐍 **Python:** !Python!%%'); ^
-$content = [regex]::Replace($content, '(?m)^- 🎨 **CSS:**.*$', '- 🎨 **CSS:** !CSS!%%'); ^
-$content = [regex]::Replace($content, '(?m)^- 🔵 **TypeScript:**.*$', '- 🔵 **TypeScript:** !TypeScript!%%'); ^
-$content = [regex]::Replace($content, '(?m)^- ⚪ **Outros:**.*$', '- ⚪ **Outros:** !Other!%%'); ^
-Set-Content -Path $path -Value $content -Encoding UTF8"
-
-:: ===================================================
-:: VERIFICAR SE README FOI ALTERADO
-:: ===================================================
-git diff --quiet README.md
-
-if %errorlevel% equ 0 (
-echo [INFO] As percentagens ja estavam atualizadas.
-goto FINAL
-)
-
-echo [INFO] README.md foi atualizado.
-echo.
-
-:: ===================================================
-:: SEGUNDO COMMIT
-:: ===================================================
-git add README.md
-
-git commit -m "Atualizar percentagens das linguagens"
-
-echo.
-
-:: ===================================================
-:: SEGUNDO PUSH
-:: ===================================================
-echo [INFO] A enviar README atualizado para o GitHub...
+# 3. Enviar para o GitHub
 
 git push
+```
 
-if %errorlevel% neq 0 (
-echo.
-echo ===================================================
-echo [ERRO] O README foi atualizado localmente,
-echo mas nao foi possivel enviar a alteracao.
-echo ===================================================
-echo.
-pause
-exit /b
-)
+---
 
-echo.
-echo [SUCESSO] README atualizado e enviado para o GitHub!
-
-:FINAL
-
-echo.
-echo ===================================================
-echo [SUCESSO] PROJETO ATUALIZADO COM SUCESSO!
-echo ===================================================
-echo.
-pause
-
-del "%TEMP_JSON%" >nul 2>&1
-
-endlocal
-:: ===================================================
-:: FIM
-:: ===================================================
+**Nota:** Toda a gestão pode ser feita através do `/dashboard` ou do painel `/admin` padrão.
