@@ -42,6 +42,11 @@ def checkout(request):
             order.save()
             
             total = 0
+            # Verificar se há multa de prato do dia após as 9h
+            penalty_amount = request.session.pop('daily_meal_penalty', Decimal('0.00'))
+            if penalty_amount > 0:
+                total += penalty_amount
+            
             for product_id, quantity in cart.items():
                 try:
                     # Usar select_for_update para prevenir race conditions
@@ -71,7 +76,19 @@ def checkout(request):
                 except Product.DoesNotExist:
                     continue
             
+            # Adicionar multa ao total se aplicável
+            if penalty_amount > 0:
+                # Criar um OrderItem virtual para a multa
+                # Vamos usar o primeiro produto como placeholder ou criar um item especial
+                # Por simplicidade, vamos adicionar a multa como um item extra no pedido
+                order.notes = f"Multa de {penalty_amount}€ aplicada por marcação após as 9h. " + (order.notes or "")
+            
             order.calculate_total()
+            
+            # Se houve multa, ajustar o total
+            if penalty_amount > 0:
+                order.total_amount += penalty_amount
+                order.save()
             
             if order.payment_method == 'card':
                 # Recarregar utilizador para garantir saldo atualizado
@@ -229,17 +246,24 @@ def order_detail(request, pk):
     qr_code = None
     if order.qr_token:
         from ..utils import generate_qr_code_svg
-        qr_code = generate_qr_code_svg(order.qr_token)
+        qr_code = generate_qr_code_svg(order)
     
-    # Obter turma do utilizador
+    # Obter turma formatada do utilizador
     turma = getattr(order.user, 'turma', '')
     if not turma and hasattr(order.user, 'student') and hasattr(order.user.student, 'class_name'):
         turma = order.user.student.class_name
     
+    # Formatar turma para exibição (ex: 10PI -> 10º PI)
+    turma_display = turma
+    if len(turma) >= 3:
+        year = turma[:2]
+        abbr = turma[2:]
+        turma_display = f"{year}º {abbr}"
+    
     return render(request, 'bar_app/order_detail.html', {
         'order': order,
         'qr_code': qr_code,
-        'turma': turma
+        'turma': turma_display
     })
 
 @login_required
@@ -487,7 +511,7 @@ def validate_qr_token(request):
                 'order_number': order.order_number,
                 'user_name': order.user.get_full_name() or order.user.username,
                 'turma': turma,
-                'picked_up_at': order.picked_up_at.strftime('%d/%m/%Y %H:%M') if order.picked_up_at else None,
+                'picked_up_at': timezone.localtime(order.picked_up_at).strftime('%d/%m/%Y %H:%M') if order.picked_up_at else None,
                 'picked_up_by': order.picked_up_by.get_full_name() if order.picked_up_by else None
             }
         }, status=400)
@@ -568,7 +592,7 @@ def confirm_pickup(request):
                 'order_number': order.order_number,
                 'user_name': order.user.get_full_name() or order.user.username,
                 'turma': turma,
-                'picked_up_at': order.picked_up_at.strftime('%d/%m/%Y %H:%M') if order.picked_up_at else None
+                'picked_up_at': timezone.localtime(order.picked_up_at).strftime('%d/%m/%Y %H:%M') if order.picked_up_at else None
             }
         }, status=400)
     
@@ -594,7 +618,7 @@ def confirm_pickup(request):
             'order_number': order.order_number,
             'user_name': order.user.get_full_name() or order.user.username,
             'turma': turma,
-            'picked_up_at': order.picked_up_at.strftime('%d/%m/%Y %H:%M'),
+            'picked_up_at': timezone.localtime(order.picked_up_at).strftime('%d/%m/%Y %H:%M'),
             'picked_up_by': request.user.get_full_name() or request.user.username
         }
     })

@@ -10,7 +10,10 @@
             <h1 class="h3 mb-0 fw-bold"><i class="fas fa-chart-line text-primary me-2"></i>Dashboard Financeiro</h1>
         </div>
         <div class="col text-end">
-            <div class="btn-group shadow-sm">
+            <a href="{% url 'bar_app:home' %}" class="btn btn-info fw-bold px-4 rounded-pill shadow-sm">
+                <i class="fas fa-home me-1"></i> Site Principal
+            </a>
+            <div class="btn-group shadow-sm mt-2 mt-md-0">
                 <a href="{% url 'bar_app:export_transactions_csv' %}" class="btn btn-success fw-bold px-4 rounded-start-pill">
                     <i class="fas fa-file-excel me-1"></i> Excel
                 </a>

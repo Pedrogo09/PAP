@@ -19,6 +19,18 @@
                     <h4>{{ user.get_full_name }}</h4>
                     <p class="text-muted">@{{ user.username }}</p>
                     <span class="badge bg-primary">{{ user.get_user_type_display }}</span>
+                    {% if user.turma %}
+                    <div class="mt-2">
+                        <small class="text-muted d-block">Turma:</small>
+                        <span class="badge bg-info">
+                            {% if user.turma|length >= 3 %}
+                                {{ user.turma|slice:":2" }}º {{ user.turma|slice:"2:" }}
+                            {% else %}
+                                {{ user.turma }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
                     {% if user.user_type == 'student' %}
                     <div class="mt-2">
                         <small class="text-muted d-block">Escalão ASE:</small>

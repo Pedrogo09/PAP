@@ -9,6 +9,7 @@ from datetime import datetime
 from django.core import signing
 from django.core.mail import EmailMessage
 from django.conf import settings
+from django.utils import timezone
 import qrcode
 import base64
 
@@ -126,12 +127,13 @@ def _add_pdf_header(story, title, sub_info=None):
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#6B4423'), spaceBefore=1, spaceAfter=4*mm))
     return story
 
+
 def generate_topup_pdf(transaction):
     buffer, doc = _build_doc_buffer('Comprovativo de Carregamento')
     styles = getSampleStyleSheet()
     story = []
 
-    dt = transaction.created_at if getattr(transaction, 'created_at', None) else datetime.now()
+    dt = timezone.localtime(transaction.created_at) if getattr(transaction, 'created_at', None) else timezone.localtime()
     sub_info = [
         f'Data: {dt.strftime("%d/%m/%Y %H:%M:%S")}',
         f'Utilizador: {transaction.user.get_full_name() or transaction.user.username}',
@@ -196,7 +198,7 @@ def generate_order_pdf(order, transaction=None):
     styles = getSampleStyleSheet()
     story = []
 
-    dt = order.created_at if getattr(order, 'created_at', None) else datetime.now()
+    dt = timezone.localtime(order.created_at) if getattr(order, 'created_at', None) else timezone.localtime()
     sub_info = [
         f'Recibo Nº: {order.order_number}',
         f'Data: {dt.strftime("%d/%m/%Y %H:%M:%S")}',
@@ -268,15 +270,37 @@ def generate_order_pdf(order, transaction=None):
     return buffer
 
 
-def generate_qr_code_svg(token):
-    """Gera QR Code como PNG base64 para o token do pedido"""
+def generate_qr_code_svg(order):
+    """Gera QR Code como PNG base64 com dados legíveis do pedido"""
+    # Obter turma formatada
+    turma = getattr(order.user, 'turma', '')
+    if not turma and hasattr(order.user, 'student') and hasattr(order.user.student, 'class_name'):
+        turma = order.user.student.class_name
+    
+    # Formatar turma para exibição (ex: 10PI -> 10º PI)
+    turma_display = turma
+    if len(turma) >= 3:
+        year = turma[:2]
+        abbr = turma[2:]
+        turma_display = f"{year}º {abbr}"
+    
+    # Construir dados legíveis para QR Code
+    qr_data = f"{order.user.get_full_name() or order.user.username}\n"
+    qr_data += f"{turma_display}\n\n"
+    
+    # Adicionar itens
+    for item in order.items.all():
+        qr_data += f"x{item.quantity} {item.product.name}\n"
+    
+    qr_data += f"\n{order.total_amount:.2f}€"
+    
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
         border=4,
     )
-    qr.add_data(f"ORDER_TOKEN:{token}")
+    qr.add_data(qr_data)
     qr.make(fit=True)
     
     # Gerar como PNG

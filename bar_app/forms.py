@@ -3,7 +3,6 @@ Formulários da aplicação
 """
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from captcha.fields import CaptchaField
 from .models import User, Order, Product, Transaction, WeekdayAvailability, Category, OrderReview
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -13,16 +12,125 @@ from datetime import datetime
 class UserRegistrationForm(UserCreationForm):
     """Formulário de registo de utilizador"""
     email = forms.EmailField(required=True)
-    captcha = CaptchaField(label="Código de Verificação")
+    
+    COURSE_CHOICES = [
+        ('', 'Selecione o Curso'),
+        ('Bombeiro/a', 'Bombeiro/a (Segurança e Prevenção)'),
+        ('Auxiliar de Farmácia', 'Auxiliar de Farmácia'),
+        ('Auxiliar de Saúde', 'Auxiliar de Saúde'),
+        ('Cozinha/Pastelaria', 'Cozinha/Pastelaria (Cozinha e Restauração)'),
+        ('Pastelaria/Padaria', 'Pastelaria/Padaria (Cozinha e Restauração)'),
+        ('Restaurante/Bar', 'Restaurante/Bar (Cozinha e Restauração)'),
+        ('Animação Turística', 'Animação Turística'),
+        ('Operações Turísticas', 'Operações Turísticas (Turismo)'),
+        ('Produção Aeronáutica', 'Produção Aeronáutica'),
+        ('Fabrico Assistido por Computador', 'Fabrico Assistido por Computador (CNC) - (Programação e Maquinação CNC)'),
+        ('Mecatrónica', 'Mecatrónica'),
+        ('Mecatrónica Automóvel', 'Mecatrónica Automóvel'),
+        ('Eletrónica e Automação', 'Eletrónica e Automação (Computadores)'),
+        ('Eletrónica e Comunicações', 'Eletrónica e Comunicações (Telecomunicações)'),
+        ('Programador/a de Informática', 'Programador/a de Informática (Desenvolvimento de Software)'),
+        ('Informática de Gestão', 'Informática de Gestão'),
+        ('Gestão de Equipamentos Informáticos', 'Gestão de Equipamentos Informáticos (Sistemas de Computação e Redes)'),
+        ('Informática - Instalação e Gestão de Redes', 'Informática - Instalação e Gestão de Redes (Sistemas de Computação e Redes)'),
+        ('Design de Comunicação Gráfica', 'Design de Comunicação Gráfica'),
+        ('Multimédia', 'Multimédia'),
+        ('Gestão', 'Gestão (Gestão e Administração)'),
+        ('Cabeleireiro/a', 'Cabeleireiro/a'),
+    ]
+    
+    YEAR_CHOICES = [
+        ('', 'Selecione o Ano'),
+        ('10', '10º Ano'),
+        ('11', '11º Ano'),
+        ('12', '12º Ano'),
+    ]
+    
+    course = forms.ChoiceField(
+        choices=COURSE_CHOICES,
+        required=False,
+        label='Curso',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    year = forms.ChoiceField(
+        choices=YEAR_CHOICES,
+        required=False,
+        label='Ano',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
     
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'user_type', 'escalao', 'phone', 'password1', 'password2']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Tornar curso e ano obrigatórios apenas para alunos
+        if self.data.get('user_type') == 'student':
+            self.fields['course'].required = True
+            self.fields['year'].required = True
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        user_type = cleaned_data.get('user_type')
+        course = cleaned_data.get('course')
+        year = cleaned_data.get('year')
+        
+        # Se for aluno, curso e ano são obrigatórios
+        if user_type == 'student':
+            if not course:
+                self.add_error('course', 'O curso é obrigatório para alunos.')
+            if not year:
+                self.add_error('year', 'O ano é obrigatório para alunos.')
+            
+            # Gerar turma no formato CURSO-ANO (ex: 10PI, 11PI, 12PI)
+            if course and year:
+                # Extrair sigla do curso (primeiras letras ou abreviação)
+                course_abbr = self._get_course_abbreviation(course)
+                cleaned_data['turma'] = f"{year}{course_abbr}"
+        
+        return cleaned_data
+    
+    def _get_course_abbreviation(self, course):
+        """Retorna abreviação do curso para formar a turma"""
+        abbreviations = {
+            'Bombeiro/a': 'BP',
+            'Auxiliar de Farmácia': 'AF',
+            'Auxiliar de Saúde': 'AS',
+            'Cozinha/Pastelaria': 'CP',
+            'Pastelaria/Padaria': 'PP',
+            'Restaurante/Bar': 'RB',
+            'Animação Turística': 'AT',
+            'Operações Turísticas': 'OT',
+            'Produção Aeronáutica': 'PA',
+            'Fabrico Assistido por Computador': 'CNC',
+            'Mecatrónica': 'MEC',
+            'Mecatrónica Automóvel': 'MA',
+            'Eletrónica e Automação': 'EA',
+            'Eletrónica e Comunicações': 'EC',
+            'Programador/a de Informática': 'PI',
+            'Informática de Gestão': 'IG',
+            'Gestão de Equipamentos Informáticos': 'GEI',
+            'Informática - Instalação e Gestão de Redes': 'IGR',
+            'Design de Comunicação Gráfica': 'DCG',
+            'Multimédia': 'MM',
+            'Gestão': 'GES',
+            'Cabeleireiro/a': 'CB',
+        }
+        return abbreviations.get(course, 'GEN')
+    
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.turma = self.cleaned_data.get('turma', '')
+        if commit:
+            user.save()
+        return user
 
 
 class LoginForm(AuthenticationForm):
-    """Formulário de login com captcha"""
-    captcha = CaptchaField(label="Código de Verificação")
+    """Formulário de login"""
+    pass
 
 
 class OrderForm(forms.ModelForm):

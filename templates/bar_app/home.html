@@ -13,10 +13,7 @@
             <i class="fas fa-utensils"></i> Ver Menu
         </a>
         {% else %}
-        <a href="{% url 'bar_app:register' %}" class="btn btn-primary btn-lg me-2">
-            <i class="fas fa-user-plus"></i> Registar
-        </a>
-        <a href="{% url 'bar_app:login' %}" class="btn btn-outline-light btn-lg">
+        <a href="{% url 'bar_app:login' %}" class="btn btn-primary btn-lg">
             <i class="fas fa-sign-in-alt"></i> Entrar
         </a>
         {% endif %}

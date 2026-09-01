@@ -193,13 +193,32 @@ class Product(models.Model):
     def __str__(self):
         return f"{self.name} - €{self.price}"
     
+    def is_daily_meal(self):
+        """Verifica se este produto é um prato do dia"""
+        daily_meal_names = ['Almoço do Dia', 'Almoço do Dia (Vegetariano)']
+        return self.name in daily_meal_names
+    
     def get_price_for_user(self, user):
-        """Retorna o preço final para o utilizador, aplicando descontos de escalão"""
+        """Retorna o preço final para o utilizador, aplicando descontos de escalão APENAS para pratos do dia"""
         if not user or not user.is_authenticated:
             return self.price
         
-        discounted_price = self.price * user.discount_multiplier
-        return discounted_price.quantize(Decimal('0.01'))
+        # Descontos aplicam-se APENAS a pratos do dia
+        if not self.is_daily_meal():
+            return self.price
+        
+        # Aplicar desconto apenas para pratos do dia
+        if user.user_type == 'student' and user.escalao:
+            if user.escalao == 'A':
+                # Escalão A: Prato do dia gratuito
+                return Decimal('0.00')
+            elif user.escalao == 'B':
+                # Escalão B: 50% de desconto
+                discounted_price = self.price * Decimal('0.50')
+                return discounted_price.quantize(Decimal('0.01'))
+            # Escalão C ou none: preço normal
+        
+        return self.price
     
     def is_in_stock(self):
         """Verifica se há stock disponível"""

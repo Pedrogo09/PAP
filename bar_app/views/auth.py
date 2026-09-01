@@ -4,6 +4,7 @@ from django.core.mail import EmailMessage
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth import logout as auth_logout, authenticate, login as auth_login
+from django.contrib.auth.decorators import user_passes_test
 from ..models import User
 
 def is_staff_user(user):
@@ -22,21 +23,23 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             auth_login(request, user)
+            
+            # Marcar na sessão se o utilizador era admin antes do logout
+            if is_staff_user(user):
+                request.session['was_admin'] = True
+            
             messages.success(request, f'Bem-vindo de volta, {user.first_name or user.username}!')
             next_url = request.GET.get('next', 'bar_app:menu')
             return redirect(next_url)
         else:
-            if 'captcha' in form.errors:
-                messages.error(request, 'Código de verificação (Captcha) inválido.')
-            else:
-                try:
-                    u = User.objects.get(username=request.POST.get('username'))
-                    if not u.is_active:
-                        messages.error(request, 'Conta não activada. Verifique o seu email.')
-                    else:
-                        messages.error(request, 'Nome de utilizador ou palavra-passe incorretos.')
-                except User.DoesNotExist:
+            try:
+                u = User.objects.get(username=request.POST.get('username'))
+                if not u.is_active:
+                    messages.error(request, 'Conta não activada. Verifique o seu email.')
+                else:
                     messages.error(request, 'Nome de utilizador ou palavra-passe incorretos.')
+            except User.DoesNotExist:
+                messages.error(request, 'Nome de utilizador ou palavra-passe incorretos.')
     else:
         form = LoginForm()
     
@@ -47,50 +50,27 @@ def register(request):
     from ..forms import UserRegistrationForm
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
-        if not form.is_valid() and 'captcha' in form.errors:
-            messages.error(request, 'Código de verificação (Captcha) inválido.')
+        if not form.is_valid():
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
             return render(request, 'bar_app/register.html', {'form': form})
-            
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        first_name = request.POST.get('first_name', '')
-        last_name = request.POST.get('last_name', '')
-        user_type = request.POST.get('user_type') or 'student'
-        escalao = request.POST.get('escalao') or 'none'
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
         
-        if password1 != password2:
-            messages.error(request, 'As palavras-passe não coincidem.')
-            return render(request, 'bar_app/register.html')
+        username = form.cleaned_data.get('username')
+        email = form.cleaned_data.get('email')
         
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Este nome de utilizador já existe.')
-            return render(request, 'bar_app/register.html')
-        
-        if not email or '@' not in email:
-            messages.error(request, 'É necessário fornecer um email válido.')
-            return render(request, 'bar_app/register.html')
-
+        # Verificações adicionais de email
         if not email.lower().endswith('@gmail.com'):
             messages.error(request, 'O email tem de ser uma conta Google (gmail.com).')
-            return render(request, 'bar_app/register.html')
+            return render(request, 'bar_app/register.html', {'form': form})
         
         if User.objects.filter(email=email).exists():
             messages.error(request, 'Este email já está registado.')
             return render(request, 'bar_app/register.html')
         
         try:
-            user = User.objects.create_user(
-                username=username,
-                email=email,
-                password=password1,
-                first_name=first_name,
-                last_name=last_name,
-                user_type=user_type,
-                escalao=escalao,
-                is_active=False
-            )
+            user = form.save(commit=False)
+            user.is_active = False
             
             # NUNCA permitir criar staff/admin via registo público
             # Apenas superuser pode promover utilizadores a staff/admin via Django Admin
@@ -136,6 +116,59 @@ def verify_email(request, token):
 
 def logout_view(request):
     """Logout do utilizador"""
+    # Marcar na sessão se o utilizador era admin antes do logout
+    if is_staff_user(request.user):
+        request.session['was_admin'] = True
+    
     auth_logout(request)
     messages.success(request, 'Sessão terminada com sucesso.')
     return redirect('bar_app:home')
+
+@login_required
+@user_passes_test(is_staff_user)
+def admin_register(request):
+    """Registo de novo utilizador (apenas admin)"""
+    from ..forms import UserRegistrationForm
+    
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
+        if not form.is_valid():
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
+            return render(request, 'bar_app/register.html', {'form': form, 'admin_mode': True})
+        
+        username = form.cleaned_data.get('username')
+        email = form.cleaned_data.get('email')
+        
+        # Verificações adicionais de email
+        if not email.lower().endswith('@gmail.com'):
+            messages.error(request, 'O email tem de ser uma conta Google (gmail.com).')
+            return render(request, 'bar_app/register.html', {'form': form, 'admin_mode': True})
+        
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Este email já está registado.')
+            return render(request, 'bar_app/register.html', {'form': form, 'admin_mode': True})
+        
+        try:
+            user = form.save(commit=False)
+            user.is_active = True  # Admin pode criar contas ativas diretamente
+            user.email_verified = True
+            
+            # Admin pode definir se é staff ou não
+            if user.user_type == 'staff':
+                user.is_staff = True
+            else:
+                user.is_staff = False
+            user.is_superuser = False
+            user.save()
+
+            messages.success(request, f'Conta criada com sucesso para {user.get_full_name() or user.username}!')
+            return redirect('bar_app:dashboard')
+        except Exception as e:
+            messages.error(request, f'Erro ao criar conta: {str(e)}')
+            return render(request, 'bar_app/register.html', {'form': form, 'admin_mode': True})
+    else:
+        form = UserRegistrationForm()
+    
+    return render(request, 'bar_app/register.html', {'form': form, 'admin_mode': True})

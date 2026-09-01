@@ -17,8 +17,10 @@ urlpatterns = [
     # Autenticação
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
-    path('register/', views.register, name='register'),
     path('verify-email/<str:token>/', views.verify_email, name='verify_email'),
+    
+    # Registo (apenas admin)
+    path('dashboard/register/', views.admin_register, name='admin_register'),
     
     # Menu e produtos
     path('products/', views.menu, name='menu'),

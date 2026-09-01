@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
+from decimal import Decimal
 from ..models import Product, Category, FavoriteProduct, OrderItem
 
 def home(request):
@@ -185,6 +186,55 @@ def add_to_cart(request, product_id):
         messages.error(request, 'Produto sem stock.')
         return redirect('bar_app:menu')
     
+    # Validar limite de 1 prato do dia por dia para escalões A e B
+    if product.is_daily_meal() and request.user.user_type == 'student':
+        if request.user.escalao in ['A', 'B']:
+            # Verificar se já tem prato do dia no carrinho
+            cart = request.session.get('cart', {})
+            for pid in cart.keys():
+                try:
+                    p = Product.objects.get(pk=pid)
+                    if p.is_daily_meal():
+                        messages.error(request, 'Só pode escolher 1 prato do dia por dia.')
+                        return redirect('bar_app:menu')
+                except Product.DoesNotExist:
+                    continue
+            
+            # Verificar se já comprou prato do dia hoje
+            from django.utils import timezone
+            today = timezone.localtime().date()
+            from ..models import OrderItem, Order
+            has_daily_meal_today = OrderItem.objects.filter(
+                product__name__in=['Almoço do Dia', 'Almoço do Dia (Vegetariano)'],
+                order__user=request.user,
+                order__scheduled_date=today,
+                order__status__in=['ready', 'delivered', 'completed']
+            ).exists()
+            
+            if has_daily_meal_today:
+                messages.error(request, 'Já escolheu o seu prato do dia hoje.')
+                return redirect('bar_app:menu')
+        
+        # Validar horário limite (9h) para marcação de prato do dia
+        from django.utils import timezone
+        now = timezone.localtime()
+        if now.hour >= 9:
+            # Adicionar multa de 0,30€ ao carrinho
+            try:
+                # Verificar se já tem multa no carrinho
+                cart = request.session.get('cart', {})
+                has_penalty = any('multa' in str(pid) for pid in cart.keys())
+                
+                if not has_penalty:
+                    # Criar um produto de multa virtual ou adicionar como item extra
+                    # Vamos adicionar como um item extra no carrinho com preço de 0,30€
+                    penalty_amount = Decimal('0.30')
+                    # Guardar a multa na sessão para processar no checkout
+                    request.session['daily_meal_penalty'] = penalty_amount
+                    messages.warning(request, 'Multa de 0,30€ aplicada por marcação após as 9h.')
+            except Exception as e:
+                pass
+    
     cart = request.session.get('cart', {})
     product_id_str = str(product_id)
     
@@ -192,6 +242,17 @@ def add_to_cart(request, product_id):
         cart[product_id_str] += 1
     else:
         cart[product_id_str] = 1
+    
+    # Adicionar água automaticamente para escalões A, B e C quando adicionam prato do dia
+    if product.is_daily_meal() and request.user.user_type == 'student' and request.user.escalao in ['A', 'B', 'C']:
+        try:
+            water_product = Product.objects.filter(name__icontains='Água 50cl').first()
+            if water_product:
+                water_id_str = str(water_product.id)
+                if water_id_str not in cart:
+                    cart[water_id_str] = 1
+        except Product.DoesNotExist:
+            pass
     
     request.session['cart'] = cart
     

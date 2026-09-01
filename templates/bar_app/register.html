@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Registar - Bar Escolar{% endblock %}
+{% block title %}{% if admin_mode %}Registar Utilizador (Admin){% else %}Registar - Bar Escolar{% endif %}{% endblock %}
 
 {% block content %}
 <div class="container py-2 py-md-5">
@@ -10,8 +10,20 @@
                 <div class="card-body p-3 p-md-5">
                     <div class="text-center mb-3 mb-md-4">
                         <i class="fas fa-user-plus fa-2x fa-md-3x text-primary mb-2 mb-md-3"></i>
-                        <h2 class="fw-bold" style="font-size: 1.5rem;">Criar Conta</h2>
-                        <p class="text-muted small">Junte-se ao Bar Escolar</p>
+                        <h2 class="fw-bold" style="font-size: 1.5rem;">
+                            {% if admin_mode %}
+                            Registar Novo Utilizador (Admin)
+                            {% else %}
+                            Criar Conta
+                            {% endif %}
+                        </h2>
+                        <p class="text-muted small">
+                            {% if admin_mode %}
+                            Preencha os dados para criar uma nova conta
+                            {% else %}
+                            Junte-se ao Bar Escolar
+                            {% endif %}
+                        </p>
                     </div>
                     
                     {% if messages %}
@@ -54,7 +66,9 @@
                             <select name="user_type" class="form-select" id="id_user_type" required>
                                 <option value="student" {% if form.user_type.value == 'student' %}selected{% endif %}>Aluno</option>
                                 <option value="teacher" {% if form.user_type.value == 'teacher' %}selected{% endif %}>Professor</option>
+                                {% if admin_mode %}
                                 <option value="staff" {% if form.user_type.value == 'staff' %}selected{% endif %}>Funcionário</option>
+                                {% endif %}
                             </select>
                         </div>
 
@@ -69,6 +83,54 @@
                             <small class="text-info d-block mt-1">O escalão define descontos automáticos nos produtos.</small>
                         </div>
                         
+                        <div class="row g-2 g-md-3" id="course_year_container" style="display: none;">
+                            <div class="col-12 col-md-6">
+                                <label for="id_course" class="form-label">Curso</label>
+                                <select name="course" class="form-select" id="id_course">
+                                    <option value="">Selecione o Curso</option>
+                                    <option value="Bombeiro/a">Bombeiro/a (Segurança e Prevenção)</option>
+                                    <option value="Auxiliar de Farmácia">Auxiliar de Farmácia</option>
+                                    <option value="Auxiliar de Saúde">Auxiliar de Saúde</option>
+                                    <option value="Cozinha/Pastelaria">Cozinha/Pastelaria (Cozinha e Restauração)</option>
+                                    <option value="Pastelaria/Padaria">Pastelaria/Padaria (Cozinha e Restauração)</option>
+                                    <option value="Restaurante/Bar">Restaurante/Bar (Cozinha e Restauração)</option>
+                                    <option value="Animação Turística">Animação Turística</option>
+                                    <option value="Operações Turísticas">Operações Turísticas (Turismo)</option>
+                                    <option value="Produção Aeronáutica">Produção Aeronáutica</option>
+                                    <option value="Fabrico Assistido por Computador">Fabrico Assistido por Computador (CNC)</option>
+                                    <option value="Mecatrónica">Mecatrónica</option>
+                                    <option value="Mecatrónica Automóvel">Mecatrónica Automóvel</option>
+                                    <option value="Eletrónica e Automação">Eletrónica e Automação (Computadores)</option>
+                                    <option value="Eletrónica e Comunicações">Eletrónica e Comunicações (Telecomunicações)</option>
+                                    <option value="Programador/a de Informática">Programador/a de Informática (Desenvolvimento de Software)</option>
+                                    <option value="Informática de Gestão">Informática de Gestão</option>
+                                    <option value="Gestão de Equipamentos Informáticos">Gestão de Equipamentos Informáticos (Sistemas de Computação e Redes)</option>
+                                    <option value="Informática - Instalação e Gestão de Redes">Informática - Instalação e Gestão de Redes (Sistemas de Computação e Redes)</option>
+                                    <option value="Design de Comunicação Gráfica">Design de Comunicação Gráfica</option>
+                                    <option value="Multimédia">Multimédia</option>
+                                    <option value="Gestão">Gestão (Gestão e Administração)</option>
+                                    <option value="Cabeleireiro/a">Cabeleireiro/a</option>
+                                </select>
+                                {% if form.course.errors %}
+                                    <div class="text-danger small mt-1">{{ form.course.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-12 col-md-6">
+                                <label for="id_year" class="form-label">Ano</label>
+                                <select name="year" class="form-select" id="id_year">
+                                    <option value="">Selecione o Ano</option>
+                                    <option value="10">10º Ano</option>
+                                    <option value="11">11º Ano</option>
+                                    <option value="12">12º Ano</option>
+                                </select>
+                                {% if form.year.errors %}
+                                    <div class="text-danger small mt-1">{{ form.year.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <small class="text-info d-block" id="turma_info" style="display: none;">A turma será gerada automaticamente (ex: 10PI, 11PI, 12PI)</small>
+                        
                         <div class="row g-2 g-md-3">
                             <div class="col-12 col-md-6">
                                 <label for="id_password1" class="form-label">Palavra-passe</label>
@@ -81,22 +143,23 @@
                             </div>
                         </div>
                         
-                        <div class="mb-2 mb-md-3 mt-3">
-                            <label class="form-label fw-bold">{{ form.captcha.label }}</label>
-                            {{ form.captcha }}
-                            {% if form.captcha.errors %}
-                                <div class="text-danger small mt-1">{{ form.captcha.errors }}</div>
-                            {% endif %}
-                        </div>
-                        
                         <div class="d-grid gap-2 mt-4 mb-3">
                             <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-user-plus"></i> Registar
+                                <i class="fas fa-user-plus"></i> 
+                                {% if admin_mode %}
+                                Criar Utilizador
+                                {% else %}
+                                Registar
+                                {% endif %}
                             </button>
                         </div>
                         
                         <div class="text-center">
+                            {% if admin_mode %}
+                            <p class="mb-0 small"><a href="{% url 'bar_app:dashboard' %}">Voltar ao Dashboard</a></p>
+                            {% else %}
                             <p class="mb-0 small">Já tem conta? <a href="{% url 'bar_app:login' %}">Entrar</a></p>
+                            {% endif %}
                         </div>
                     </form>
                 </div>
@@ -112,22 +175,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const userTypeSelect = document.getElementById('id_user_type');
     const escalaoContainer = document.getElementById('escalao_container');
     const escalaoSelect = document.getElementById('id_escalao');
+    const courseYearContainer = document.getElementById('course_year_container');
+    const courseSelect = document.getElementById('id_course');
+    const yearSelect = document.getElementById('id_year');
+    const turmaInfo = document.getElementById('turma_info');
 
-    function toggleEscalao() {
+    function toggleStudentFields() {
         if (userTypeSelect.value === 'student') {
             escalaoContainer.style.display = 'block';
             escalaoSelect.required = true;
+            courseYearContainer.style.display = 'block';
+            courseSelect.required = true;
+            yearSelect.required = true;
+            turmaInfo.style.display = 'block';
         } else {
             escalaoContainer.style.display = 'none';
             escalaoSelect.required = false;
             escalaoSelect.value = 'none';
+            courseYearContainer.style.display = 'none';
+            courseSelect.required = false;
+            courseSelect.value = '';
+            yearSelect.required = false;
+            yearSelect.value = '';
+            turmaInfo.style.display = 'none';
         }
     }
 
-    userTypeSelect.addEventListener('change', toggleEscalao);
+    userTypeSelect.addEventListener('change', toggleStudentFields);
     
     // Run on load to set initial state
-    toggleEscalao();
+    toggleStudentFields();
 });
 </script>
 {% endblock %}
