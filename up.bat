@@ -27,10 +27,10 @@ if not exist .git (
 git remote get-url origin >nul 2>&1
 if %errorlevel% neq 0 (
     echo [INFO] A adicionar o repositorio remoto origin...
-    git remote add origin https://github.com/Pedrogo09/PAP
+    git remote add origin https://github.com/Pedrogo09/PAP.git
 ) else (
     echo [INFO] A atualizar o endereco do repositorio remoto origin...
-    git remote set-url origin https://github.com/Pedrogo09/PAP
+    git remote set-url origin https://github.com/Pedrogo09/PAP.git
 )
 
 echo.
