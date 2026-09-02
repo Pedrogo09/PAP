@@ -185,7 +185,7 @@ JAZZMIN_SETTINGS = {
     "login_logo": "images/logo.png",
     "site_icon": "images/logo.png",
     "welcome_sign": "Bem-vindo ao Bar Escolar",
-    "copyright": "Bar Escolar. Todos os direitos reservados",
+    "copyright": "2025 Bar Escolar. Todos os direitos reservados",
     "search_model": ["bar_app.Product", "bar_app.User"],
     "user_avatar": "logo_avatar",
     "topmenu_links": [

@@ -215,25 +215,23 @@ def add_to_cart(request, product_id):
                 messages.error(request, 'Já escolheu o seu prato do dia hoje.')
                 return redirect('bar_app:menu')
         
-        # Validar horário limite (9h) para marcação de prato do dia
-        from django.utils import timezone
-        now = timezone.localtime()
-        if now.hour >= 9:
-            # Adicionar multa de 0,30€ ao carrinho
-            try:
-                # Verificar se já tem multa no carrinho
-                cart = request.session.get('cart', {})
-                has_penalty = any('multa' in str(pid) for pid in cart.keys())
-                
-                if not has_penalty:
-                    # Criar um produto de multa virtual ou adicionar como item extra
-                    # Vamos adicionar como um item extra no carrinho com preço de 0,30€
-                    penalty_amount = Decimal('0.30')
-                    # Guardar a multa na sessão para processar no checkout
-                    request.session['daily_meal_penalty'] = penalty_amount
-                    messages.warning(request, 'Multa de 0,30€ aplicada por marcação após as 9h.')
-            except Exception as e:
-                pass
+        # Validar horário limite (9h) para marcação de prato do dia (apenas escalões A, B e C)
+        if request.user.escalao in ['A', 'B', 'C']:
+            from django.utils import timezone
+            now = timezone.localtime()
+            if now.hour >= 9:
+                # Adicionar multa de 0,30€ ao carrinho
+                try:
+                    # Verificar se já tem multa no carrinho
+                    cart = request.session.get('cart', {})
+                    has_penalty = any('multa' in str(pid) for pid in cart.keys())
+                    
+                    if not has_penalty:
+                        penalty_amount = Decimal('0.30')
+                        request.session['daily_meal_penalty'] = penalty_amount
+                        messages.warning(request, 'Multa de 0,30€ aplicada por marcação após as 9h.')
+                except Exception:
+                    pass
     
     cart = request.session.get('cart', {})
     product_id_str = str(product_id)
@@ -284,7 +282,6 @@ def add_to_cart(request, product_id):
         <a href="/cart/" class="btn btn-sm btn-primary ms-3">Ver Carrinho</a>
     </div>
     '''
-    
     messages.success(request, msg_html, extra_tags='cart-toast')
     return redirect('bar_app:menu')
 
