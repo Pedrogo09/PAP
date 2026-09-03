@@ -29,6 +29,30 @@ Sistema de gestão de bar escolar desenvolvido em **Django 5.2**, com suporte a 
 
 ---
 
+## 🚀 Como Executar (se o `cmd.exe` estiver bloqueado)
+
+Em computadores geridos por um administrador (por exemplo, da escola), o `cmd.exe`
+pode estar desativado por política de grupo. Como os ficheiros `.bat` são executados
+através do `cmd.exe`, o `start.bat` falha com:
+
+```
+The command prompt has been disabled by your administrator.
+```
+
+Nesse caso usa a versão em PowerShell, que faz exatamente o mesmo:
+
+```powershell
+.\start.ps1
+```
+
+Se o PowerShell recusar executar o script por causa da *execution policy*, corre:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start.ps1
+```
+
+---
+
 ## 🚀 Como Executar (sem utilizar scripts)
 
 1. **Ativar Ambiente Virtual:**
