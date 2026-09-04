@@ -20,11 +20,25 @@ Sistema de gestão de bar escolar desenvolvido em **Django 5.2**, com suporte a 
 
 ## 🚀 Como Executar (forma rápida)
 
-1. **Executar os scripts na ordem seguinte**
+1. **Executar os scripts na ordem seguinte** (PowerShell, não é preciso cmd)
 
    ```powershell
-   .\start.bat
-   .\up.bat
+   powershell -ExecutionPolicy Bypass -File .\start.ps1
+   powershell -ExecutionPolicy Bypass -File .\up.ps1
+   ```
+
+2. **Se a política de execução estiver bloqueada pelo administrador**, correr na
+   sessão atual do PowerShell (não requer permissões de admin):
+
+   ```powershell
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+   .\start.ps1
+   ```
+
+   E, em último caso, executar o conteúdo do script diretamente:
+
+   ```powershell
+   Get-Content .\start.ps1 -Raw | Invoke-Expression
    ```
 
 ---
@@ -34,7 +48,7 @@ Sistema de gestão de bar escolar desenvolvido em **Django 5.2**, com suporte a 
 1. **Ativar Ambiente Virtual:**
 
    ```powershell
-   .\venv\Scripts\activate
+   .\.venv\Scripts\Activate.ps1
    ```
 
 2. **Instalar Dependências:**
