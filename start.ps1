@@ -14,16 +14,54 @@ function Write-Titulo([string]$Texto) {
     Write-Host '=============================================='
 }
 
+function Update-PathFromRegistry {
+    $machine = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    $user = [Environment]::GetEnvironmentVariable('Path', 'User')
+    $env:Path = (@($machine, $user) | Where-Object { $_ }) -join ';'
+}
+
+function Test-PythonExe([string]$Caminho) {
+    if (-not $Caminho) { return $false }
+    # Os stubs da Microsoft Store (WindowsApps) abrem a loja em vez de correr o Python.
+    if ($Caminho -like '*\WindowsApps\*') { return $false }
+    try {
+        $versao = & $Caminho --version 2>&1
+        return ($LASTEXITCODE -eq 0 -and "$versao" -match 'Python 3\.')
+    } catch {
+        return $false
+    }
+}
+
 function Get-PythonCmd {
-    foreach ($candidato in @('python', 'python3', 'py')) {
-        $exe = Get-Command $candidato -ErrorAction SilentlyContinue
-        if ($exe) {
-            try {
-                & $exe.Source --version *> $null
-                if ($LASTEXITCODE -eq 0) { return $exe.Source }
-            } catch { }
+    Update-PathFromRegistry
+
+    foreach ($candidato in @('python', 'python3')) {
+        foreach ($exe in @(Get-Command $candidato -All -ErrorAction SilentlyContinue)) {
+            if (Test-PythonExe $exe.Source) { return $exe.Source }
         }
     }
+
+    $pastas = @(
+        (Join-Path $env:LOCALAPPDATA 'Programs\Python'),
+        (Join-Path $env:ProgramFiles 'Python*'),
+        'C:\Python*'
+    )
+    foreach ($pasta in $pastas) {
+        $encontrados = Get-ChildItem -Path $pasta -Filter 'python.exe' -Recurse -Depth 2 `
+            -ErrorAction SilentlyContinue | Sort-Object FullName -Descending
+        foreach ($exe in $encontrados) {
+            if (Test-PythonExe $exe.FullName) { return $exe.FullName }
+        }
+    }
+
+    $py = Get-Command 'py' -ErrorAction SilentlyContinue
+    if ($py) {
+        try {
+            $alvo = (& $py.Source -3 -c 'import sys; print(sys.executable)' 2>$null | Select-Object -First 1)
+            if (Test-PythonExe $alvo) { return $alvo }
+        } catch { }
+    }
+
     return $null
 }
 
@@ -43,15 +81,14 @@ if (-not $python) {
     Write-Host '[AVISO] Python nao esta instalado no sistema.'
     Write-Host '[INFO] A tentar instalar o Python (apenas para o utilizador atual)...'
 
-    $instalado = $false
     if (Get-Command winget -ErrorAction SilentlyContinue) {
         winget install --id Python.Python.3.12 --scope user `
             --accept-package-agreements --accept-source-agreements
-        if ($LASTEXITCODE -eq 0) { $instalado = $true }
+        $python = Get-PythonCmd
     }
 
-    if (-not $instalado) {
-        Write-Host '[INFO] Winget indisponivel. A descarregar o instalador manualmente...'
+    if (-not $python) {
+        Write-Host '[INFO] A descarregar o instalador oficial do Python...'
         $installer = Join-Path $env:TEMP 'python_installer.exe'
         Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.12.3/python-3.12.3-amd64.exe' `
             -OutFile $installer -UseBasicParsing
@@ -59,12 +96,18 @@ if (-not $python) {
         Start-Process -FilePath $installer -Wait -ArgumentList `
             '/quiet', 'InstallAllUsers=0', 'PrependPath=1', 'Include_test=0'
         Remove-Item $installer -ErrorAction SilentlyContinue
+        $python = Get-PythonCmd
+    }
+
+    if (-not $python) {
+        Write-Host '[ERRO] Nao foi possivel encontrar o Python depois da instalacao.'
+        Write-Host '[INFO] Instala manualmente a partir de https://www.python.org/downloads/'
+        Write-Host '       com a opcao "Add python.exe to PATH" activada e corre o script outra vez.'
+        Read-Host 'Prime Enter para sair'
+        exit 1
     }
 
     Write-Host '[SUCESSO] Python instalado!'
-    Write-Host '[IMPORTANTE] Fecha esta janela e volta a correr o start.ps1 para o PATH ser reconhecido.'
-    Read-Host 'Prime Enter para sair'
-    exit 0
 }
 
 Write-Host "[OK] Python encontrado em: $python"
