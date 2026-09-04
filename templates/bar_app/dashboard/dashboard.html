@@ -1,0 +1,508 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard Admin - Bar Escolar{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <h1 class="mb-4 fw-bold"><i class="fas fa-tachometer-alt"></i> Dashboard Administrativo</h1>
+
+    <!-- ALERTAS - Stock Baixo -->
+    {% if critical_stock %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> ⚠️ Stock Crítico!</h4>
+        <p class="mb-0">Os seguintes produtos têm stock inferior ao mínimo:</p>
+        <div class="mt-2">
+            {% for product in critical_stock %}
+            <span class="badge bg-danger me-2 mb-1">
+                {{ product.name }}: {{ product.stock }} unidades
+            </span>
+            {% endfor %}
+        </div>
+        <hr>
+        <p class="mb-0">
+            <a href="{% url 'bar_app:add_stock_dashboard' %}" class="btn btn-sm btn-danger">
+                <i class="fas fa-plus-circle"></i> Adicionar Stock
+            </a>
+        </p>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- Estatísticas -->
+    <div class="row mb-4">
+        <!-- Receita Hoje -->
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'bar_app:finance_summary' %}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #198754 0%, #146c43 100%); cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Receita Hoje</h6>
+                                <h3 class="mb-0 fw-bold">€{{ revenue_today }}</h3>
+                            </div>
+                            <div class="fs-1 opacity-50">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <!-- Pedidos Hoje -->
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'bar_app:manage_orders' %}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Pedidos Hoje</h6>
+                                <h3 class="mb-0 fw-bold">{{ total_orders_today }}</h3>
+                            </div>
+                            <div class="fs-1 opacity-50">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <!-- Pendentes -->
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'bar_app:manage_orders' %}?status=pending" class="text-decoration-none">
+                <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #fd7e14 0%, #e8590c 100%); cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Pendentes</h6>
+                                <h3 class="mb-0 fw-bold">{{ pending_orders }}</h3>
+                            </div>
+                            <div class="fs-1 opacity-50">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <!-- Saldo Escola -->
+        <div class="col-md-3 mb-3">
+            <a href="{% url 'bar_app:finance_summary' %}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm h-100 text-white" style="background: linear-gradient(135deg, #0dcaf0 0%, #0bacce 100%); cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-uppercase fw-bold mb-1 opacity-75">Saldo Escola</h6>
+                                <h3 class="mb-0 fw-bold">€{{ school_balance }}</h3>
+                            </div>
+                            <div class="fs-1 opacity-50">
+                                <i class="fas fa-euro-sign"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Estatísticas Analíticas (Novas) -->
+    <div class="row mb-4">
+        <!-- Valor em Stock -->
+        <div class="col-md-4 mb-3">
+            <a href="{% url 'bar_app:manage_stock' %}" class="text-decoration-none">
+                <div class="card border-0 border-start border-4 border-secondary shadow-sm h-100" style="cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-muted text-uppercase fw-bold mb-1">Valor Gasto em Stock</h6>
+                                <h3 class="mb-0 text-secondary fw-bold">€{{ total_spent_on_stock }}</h3>
+                            </div>
+                            <div class="fs-1 text-secondary opacity-50">
+                                <i class="fas fa-boxes"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <!-- Lucro Potencial -->
+        <div class="col-md-4 mb-3">
+            <a href="{% url 'bar_app:finance_summary' %}" class="text-decoration-none">
+                <div class="card border-0 border-start border-4 border-success shadow-sm h-100" style="cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-muted text-uppercase fw-bold mb-1">Lucro Potencial</h6>
+                                <h3 class="mb-0 text-success fw-bold">€{{ potential_profit }}</h3>
+                            </div>
+                            <div class="fs-1 text-success opacity-50">
+                                <i class="fas fa-hand-holding-usd"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <!-- Ticket Médio Hoje -->
+        <div class="col-md-4 mb-3">
+            <a href="{% url 'bar_app:finance_summary' %}" class="text-decoration-none">
+                <div class="card border-0 border-start border-4 border-info shadow-sm h-100" style="cursor: pointer; transition: transform 0.2s;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title text-muted text-uppercase fw-bold mb-1">Ticket Médio Hoje</h6>
+                                <h3 class="mb-0 text-info fw-bold">€{{ aov_today }}</h3>
+                            </div>
+                            <div class="fs-1 text-info opacity-50">
+                                <i class="fas fa-receipt"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3"><i class="fas fa-bolt"></i> Ações Rápidas</h5>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{% url 'bar_app:admin_register' %}" class="btn btn-primary rounded-pill">
+                            <i class="fas fa-user-plus"></i> Registar Utilizador
+                        </a>
+                        <a href="{% url 'bar_app:scan_qr' %}" class="btn btn-warning rounded-pill">
+                            <i class="fas fa-qrcode"></i> Scan QR Code
+                        </a>
+                        <a href="{% url 'bar_app:manage_orders' %}" class="btn btn-primary rounded-pill">
+                            <i class="fas fa-clipboard-list"></i> Gerir Pedidos
+                        </a>
+                        <a href="{% url 'bar_app:manage_products' %}" class="btn btn-success rounded-pill">
+                            <i class="fas fa-box"></i> Gerir Produtos
+                        </a>
+                        <a href="{% url 'bar_app:manage_stock' %}" class="btn btn-warning rounded-pill">
+                            <i class="fas fa-warehouse"></i> Gerir Stock
+                        </a>
+                        <a href="{% url 'bar_app:add_stock_dashboard' %}" class="btn btn-info rounded-pill">
+                            <i class="fas fa-plus-circle"></i> Adicionar Stock
+                        </a>
+                        <a href="{% url 'bar_app:finance_summary' %}" class="btn btn-secondary rounded-pill">
+                            <i class="fas fa-chart-bar"></i> Resumo Financeiro
+                        </a>
+                        <a href="{% url 'bar_app:all_reviews' %}" class="btn btn-warning text-dark rounded-pill">
+                            <i class="fas fa-star"></i> Ver Avaliações
+                        </a>
+                        <a href="/admin/" class="btn btn-dark rounded-pill" target="_blank">
+                            <i class="fas fa-cog"></i> Painel Admin Django
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0"><i class="fas fa-chart-line"></i> Vendas</h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="?period=7days"
+                                class="btn btn-outline-primary {% if selected_period == '7days' or not selected_period %}active{% endif %}">7
+                                Dias</a>
+                            <a href="?period=30days"
+                                class="btn btn-outline-primary {% if selected_period == '30days' %}active{% endif %}">30
+                                Dias</a>
+                            <a href="?period=best"
+                                class="btn btn-outline-primary {% if selected_period == 'best' %}active{% endif %}">Melhor
+                                Mês</a>
+                        </div>
+                    </div>
+                    <canvas id="salesChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-star"></i> Top 5 Produtos</h5>
+                    <canvas id="topProductsChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Novo Gráfico de Previsão de Stock -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-magic"></i> Visualização de Previsão de Stock (Próximos 7 Dias)</h5>
+                    <p class="text-muted small">Comparação entre Stock Atual e Necessidade de Compra Sugerida.</p>
+                    <canvas id="stockPredictionChart" style="max-height: 400px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Previsões de Compra -->
+    <div class="card mb-4 border-info">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-magic"></i> Previsões de Compras (Próximos 7 Dias)</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">
+                Com base no consumo médio dos últimos 30 dias, estas são as quantidades sugeridas para manter o stock adequado durante a próxima semana.
+            </p>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th class="text-center">Stock Atual</th>
+                            <th class="text-center">Consumo Previsto (7d)</th>
+                            <th class="text-center">Sugestão de Compra</th>
+                            <th class="text-center">Custo Estimado</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for suggestion in buy_suggestions %}
+                        <tr>
+                            <td><strong>{{ suggestion.product.name }}</strong></td>
+                            <td class="text-center">
+                                {% if suggestion.current_stock <= suggestion.product.min_stock %}
+                                    <span class="text-danger fw-bold">{{ suggestion.current_stock }}</span>
+                                {% else %}
+                                    {{ suggestion.current_stock }}
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ suggestion.predicted_7d }}</td>
+                            <td class="text-center text-success fw-bold">+{{ suggestion.suggested_buy }}</td>
+                            <td class="text-center text-secondary">€{{ suggestion.estimated_cost|floatformat:2 }}</td>
+                            <td>
+                                <a href="{% url 'bar_app:add_stock_dashboard' %}" class="btn btn-sm btn-outline-info">Adicionar Stock</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-3">
+                                Não há previsões de compras necessárias no momento.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="4" class="text-end">Total a Investir Estimado:</th>
+                            <th class="text-center text-primary fs-5">€{{ total_investment_needed }}</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pedidos Recentes -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title mb-3"><i class="fas fa-history"></i> Pedidos Recentes</h5>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nº Pedido</th>
+                            <th>Cliente</th>
+                            <th>Data/Hora</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td><strong>{{ order.order_number }}</strong></td>
+                            <td>{{ order.user.get_full_name|default:order.user.username }}</td>
+                            <td>{{ order.scheduled_date|date:"d/m/Y" }} {{ order.scheduled_time|time:"H:i" }}</td>
+                            <td>€{{ order.total_amount }}</td>
+                            <td>
+                                {% if order.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pendente</span>
+                                {% elif order.status == 'ready' %}
+                                <span class="badge bg-success">Pronto</span>
+                                {% elif order.status == 'cancelled' %}
+                                <span class="badge bg-danger">Cancelado</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ order.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'bar_app:order_detail' order.pk %}"
+                                    class="btn btn-sm btn-outline-primary">Ver</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">Nenhum pedido recente</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js Local (Offline) -->
+<script src="{% static 'js/chart.min.js' %}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Iniciando carregamento dos gráficos locais...");
+        
+        if (typeof Chart === 'undefined') {
+            console.error("Erro: Chart.js local não foi carregado.");
+            return;
+        }
+
+        // Configurações globais
+        Chart.defaults.font.size = 13;
+        Chart.defaults.font.weight = '600';
+        Chart.defaults.color = '#555';
+
+        try {
+            // Gráfico de vendas
+            const canvasSales = document.getElementById('salesChart');
+            if (canvasSales) {
+                const ctxSales = canvasSales.getContext('2d');
+                new Chart(ctxSales, {
+                    type: 'line',
+                    data: {
+                        labels: {{ last_7_days|safe }},
+                        datasets: [
+                            {
+                                label: 'Receita (€)',
+                                data: {{ revenue_by_day|safe }},
+                                borderColor: 'rgb(54, 162, 235)',
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                tension: 0.4,
+                                fill: false,
+                            },
+                            {
+                                label: 'Pedidos',
+                                data: {{ sales_by_day|safe }},
+                                borderColor: 'rgb(75, 192, 192)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                tension: 0.4,
+                                fill: true,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { 
+                                type: 'linear', 
+                                display: true, 
+                                position: 'left', 
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Gráfico de top produtos
+            const canvasProducts = document.getElementById('topProductsChart');
+            if (canvasProducts) {
+                const ctxProducts = canvasProducts.getContext('2d');
+                const productData = {{ top_product_quantities|safe }};
+                
+                // Só desenha se houver dados
+                if (productData.length > 0) {
+                    new Chart(ctxProducts, {
+                        type: 'doughnut',
+                        data: {
+                            labels: {{ top_product_names|safe }},
+                            datasets: [{
+                                data: productData,
+                                backgroundColor: [
+                                    '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom' }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // NOVO: Gráfico de Previsão de Stock
+            const canvasStock = document.getElementById('stockPredictionChart');
+            if (canvasStock) {
+                const ctxStock = canvasStock.getContext('2d');
+                new Chart(ctxStock, {
+                    type: 'bar',
+                    data: {
+                        labels: {{ stock_prediction_labels|safe }},
+                        datasets: [
+                            {
+                                label: 'Stock Atual',
+                                data: {{ stock_prediction_current|safe }},
+                                backgroundColor: 'rgba(107, 68, 35, 0.6)',
+                                borderColor: 'rgba(107, 68, 35, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Sugestão de Compra',
+                                data: {{ stock_prediction_needed|safe }},
+                                backgroundColor: 'rgba(25, 135, 84, 0.6)',
+                                borderColor: 'rgba(25, 135, 84, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true },
+                            y: { 
+                                stacked: true,
+                                beginAtZero: true,
+                                title: { display: true, text: 'Unidades' }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    afterBody: function(context) {
+                                        return 'Total após compra: ' + (context[0].raw + context[1].raw);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("Erro ao desenhar gráficos:", e);
+        }
+    });
+</script>
+{% endblock %}

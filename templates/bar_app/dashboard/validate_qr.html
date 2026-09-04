@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Validar QR Code - Bar Escolar{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const validateBtn = document.getElementById('validateBtn');
+    const manualInput = document.getElementById('manualInput');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const resultDiv = document.getElementById('resultDiv');
+    const scannerDiv = document.getElementById('scannerDiv');
+    const useCameraBtn = document.getElementById('useCameraBtn');
+    const useManualBtn = document.getElementById('useManualBtn');
+    const manualDiv = document.getElementById('manualDiv');
+    
+    let html5QrcodeScanner = null;
+    let currentToken = null;
+
+    // Validação manual
+    validateBtn.addEventListener('click', function() {
+        const token = manualInput.value.trim();
+        if (!token) {
+            alert('Por favor introduza o código.');
+            return;
+        }
+        validateToken(token);
+    });
+
+    // Confirmação de levantamento
+    confirmBtn.addEventListener('click', function() {
+        if (!currentToken) {
+            alert('Nenhum pedido validado.');
+            return;
+        }
+        confirmPickup(currentToken);
+    });
+
+    // Usar câmara
+    useCameraBtn.addEventListener('click', function() {
+        manualDiv.classList.add('d-none');
+        scannerDiv.classList.remove('d-none');
+        startScanner();
+    });
+
+    // Usar input manual
+    useManualBtn.addEventListener('click', function() {
+        stopScanner();
+        scannerDiv.classList.add('d-none');
+        manualDiv.classList.remove('d-none');
+    });
+
+    function validateToken(token) {
+        fetch("{% url 'bar_app:validate_qr_token' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ token: token })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentToken = token;
+                displayOrder(data.order);
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Erro</h5>
+                        <p>${data.error}</p>
+                        ${data.order ? `
+                            <hr>
+                            <small>
+                                <strong>Pedido:</strong> ${data.order.order_number}<br>
+                                <strong>Levantado em:</strong> ${data.order.picked_up_at}<br>
+                                ${data.order.picked_up_by ? `<strong>Por:</strong> ${data.order.picked_up_by}` : ''}
+                            </small>
+                        ` : ''}
+                    </div>
+                `;
+                confirmBtn.classList.add('d-none');
+            }
+        })
+        .catch(error => {
+            resultDiv.innerHTML = `<div class="alert alert-danger">Erro ao validar: ${error}</div>`;
+            confirmBtn.classList.add('d-none');
+        });
+    }
+
+    function confirmPickup(token) {
+        if (!confirm('Tem certeza que deseja confirmar o levantamento deste pedido?')) {
+            return;
+        }
+
+        fetch("{% url 'bar_app:confirm_pickup' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ token: token })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <h5><i class="fas fa-check-circle"></i> Levantamento Confirmado</h5>
+                        <p>${data.message}</p>
+                        <hr>
+                        <strong>Pedido:</strong> ${data.order.order_number}<br>
+                        <strong>Utilizador:</strong> ${data.order.user_name}<br>
+                        <strong>Turma:</strong> ${data.order.turma || 'N/A'}<br>
+                        <strong>Levantado em:</strong> ${data.order.picked_up_at}<br>
+                        <strong>Levantado por:</strong> ${data.order.picked_up_by}
+                    </div>
+                `;
+                confirmBtn.classList.add('d-none');
+                currentToken = null;
+                manualInput.value = '';
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Erro</h5>
+                        <p>${data.error}</p>
+                    </div>
+                `;
+                confirmBtn.classList.add('d-none');
+            }
+        })
+        .catch(error => {
+            resultDiv.innerHTML = `<div class="alert alert-danger">Erro ao confirmar: ${error}</div>`;
+        });
+    }
+
+    function displayOrder(order) {
+        let itemsHtml = order.items.map(item => `
+            <tr>
+                <td>${item.quantity}x</td>
+                <td>${item.product_name}</td>
+                <td>€${item.unit_price}</td>
+                <td>€${item.subtotal}</td>
+            </tr>
+        `).join('');
+
+        resultDiv.innerHTML = `
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-circle"></i> Pedido Encontrado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6>${order.user_name}</h6>
+                            <p class="text-muted mb-0">${order.turma || 'Sem turma'}</p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <h5 class="mb-0">Pedido #${order.order_number}</h5>
+                            <span class="badge bg-${getStatusBadgeClass(order.status)}">${order.status_display}</span>
+                        </div>
+                    </div>
+                    
+                    <table class="table table-sm mb-3">
+                        <thead>
+                            <tr>
+                                <th>Qtd</th>
+                                <th>Produto</th>
+                                <th>Preço</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                <td><strong>€${order.total_amount}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    
+                    <div class="d-grid">
+                        <button id="confirmBtn" class="btn btn-success btn-lg">
+                            <i class="fas fa-check"></i> Confirmar Levantamento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Re-attach event listener for confirm button
+        document.getElementById('confirmBtn').addEventListener('click', function() {
+            confirmPickup(currentToken);
+        });
+    }
+
+    function getStatusBadgeClass(status) {
+        const classes = {
+            'ready': 'success',
+            'confirmed': 'info',
+            'preparing': 'primary',
+            'pending': 'warning',
+            'delivered': 'secondary',
+            'cancelled': 'danger'
+        };
+        return classes[status] || 'secondary';
+    }
+
+    function startScanner() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.clear();
+        }
+
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            /* verbose= */ false
+        );
+
+        html5QrcodeScanner.render(
+            function(decodedText, decodedResult) {
+                // Stop scanning after successful read
+                stopScanner();
+                // Extract token if it has prefix
+                let token = decodedText;
+                if (decodedText.startsWith('ORDER_TOKEN:')) {
+                    token = decodedText.substring(12);
+                }
+                validateToken(token);
+            },
+            function(errorMessage) {
+                // Ignore scan errors
+            }
+        );
+    }
+
+    function stopScanner() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.clear().catch(error => {
+                console.error("Failed to clear scanner", error);
+            });
+            html5QrcodeScanner = null;
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="fw-bold"><i class="fas fa-qrcode"></i> Validar Pedido</h1>
+                <a href="{% url 'bar_app:dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+
+            <!-- Opções de input -->
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-3">Escolha o método de validação</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" id="useCameraBtn" class="btn btn-primary btn-lg">
+                            <i class="fas fa-camera"></i> Ler QR Code
+                        </button>
+                        <button type="button" id="useManualBtn" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-keyboard"></i> Introduzir Código
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scanner -->
+            <div id="scannerDiv" class="card mb-4 d-none">
+                <div class="card-body">
+                    <h5 class="card-title mb-3 text-center">Aponte a câmara para o QR Code</h5>
+                    <div id="reader" class="mb-3"></div>
+                    <button id="stopScanBtn" class="btn btn-secondary w-100">Parar Scanner</button>
+                </div>
+            </div>
+
+            <!-- Input manual -->
+            <div id="manualDiv" class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Introduzir código manualmente</h5>
+                    <div class="input-group mb-3">
+                        <input type="text" id="manualInput" class="form-control form-control-lg" 
+                               placeholder="Cole o código do QR Code aqui..." autocomplete="off">
+                        <button id="validateBtn" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Validar
+                        </button>
+                    </div>
+                    <small class="text-muted">O código deve começar com "ORDER_TOKEN:" ou ser apenas o token.</small>
+                </div>
+            </div>
+
+            <!-- Resultado -->
+            <div id="resultDiv"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

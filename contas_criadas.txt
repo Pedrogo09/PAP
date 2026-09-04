@@ -1,0 +1,14 @@
+CONTAS CRIADAS NO SISTEMA
+============================
+
+Tipo de Conta | Nome de Utilizador | Password | Escalão (se aplicável)
+-------------|-------------------|----------|----------------------
+Administrador | ADMIN             | (definida anteriormente) | -
+Professor    | professorteste    | professorteste123 | -
+Funcionário  | funcionarioteste  | funcionarioteste123 | -
+Aluno        | alunoteste        | alunoteste123 | none (sem desconto)
+
+NOTAS:
+- Contas de teste criadas pelo script reset_pap
+- Aluno alunoteste tem escalao 'none' = paga 100% do preço (sem desconto)
+- Para alunos com desconto: Escalão A (paga 25%), B (paga 50%), C (paga 75%)

@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+
+{% block title %}Pedido {{ order.order_number }} - Bar Escolar{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const orderId = "{{ order.pk }}";
+        let currentStatus = "{{ order.status }}";
+
+        // Só faz polling se o pedido não estiver finalizado
+        if (currentStatus !== 'delivered' && currentStatus !== 'cancelled') {
+            console.log("Polling ativo para o pedido " + orderId);
+
+            const pollInterval = setInterval(function () {
+                fetch("{% url 'bar_app:check_order_status' order.pk %}")
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status && data.status !== currentStatus) {
+                            console.log("Status alterado para: " + data.status);
+                            // Notificação visual simples antes de recarregar
+                            document.body.style.opacity = '0.5';
+                            // Recarregar para atualizar timeline e badges
+                            window.location.reload();
+                        }
+                    })
+                    .catch(err => console.error('Erro ao verificar status:', err));
+            }, 10000); // Verifica a cada 10 segundos
+
+            // Limpar intervalo se a página for fechada
+            window.addEventListener('beforeunload', () => clearInterval(pollInterval));
+        }
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold"><i class="fas fa-receipt"></i> Pedido {{ order.order_number }}</h1>
+            <small class="text-muted">Criado em {{ order.created_at|date:"d/m/Y H:i" }}</small>
+        </div>
+        <a href="{% url 'bar_app:order_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <!-- Timeline de Status -->
+    <div class="card mb-4 border-0 bg-light">
+        <div class="card-body p-4">
+            <h6 class="card-title mb-4">Rastreio do Pedido</h6>
+            <div class="timeline">
+                <div
+                    class="timeline-item {% if order.status == 'pending' or order.status == 'confirmed' or order.status == 'preparing' or order.status == 'ready' or order.status == 'delivered' %}active{% endif %}">
+                    <div class="timeline-marker bg-primary"></div>
+                    <div class="timeline-content">
+                        <strong>Pedido Recebido</strong>
+                        <small class="text-muted d-block">{{ order.created_at|date:"d/m/Y H:i" }}</small>
+                    </div>
+                </div>
+
+                <div
+                    class="timeline-item {% if order.status == 'confirmed' or order.status == 'preparing' or order.status == 'ready' or order.status == 'delivered' %}active{% endif %}">
+                    <div
+                        class="timeline-marker {% if order.status == 'confirmed' or order.status == 'preparing' or order.status == 'ready' or order.status == 'delivered' %}bg-success{% else %}bg-secondary{% endif %}">
+                    </div>
+                    <div class="timeline-content">
+                        <strong>Confirmado</strong>
+                        <small class="text-muted d-block">Aguardando preparação</small>
+                    </div>
+                </div>
+
+                <div
+                    class="timeline-item {% if order.status == 'preparing' or order.status == 'ready' or order.status == 'delivered' %}active{% endif %}">
+                    <div
+                        class="timeline-marker {% if order.status == 'preparing' or order.status == 'ready' or order.status == 'delivered' %}bg-info{% else %}bg-secondary{% endif %}">
+                    </div>
+                    <div class="timeline-content">
+                        <strong>Em Preparação</strong>
+                        <small class="text-muted d-block">Cozinhando o seu pedido</small>
+                    </div>
+                </div>
+
+                <div
+                    class="timeline-item {% if order.status == 'ready' or order.status == 'delivered' %}active{% endif %}">
+                    <div
+                        class="timeline-marker {% if order.status == 'ready' or order.status == 'delivered' %}bg-warning{% else %}bg-secondary{% endif %}">
+                    </div>
+                    <div class="timeline-content">
+                        <strong>Pronto para Levantamento</strong>
+                        <small class="text-muted d-block">Pode vir recolher</small>
+                    </div>
+                </div>
+
+                <div class="timeline-item {% if order.status == 'delivered' %}active{% endif %}">
+                    <div
+                        class="timeline-marker {% if order.status == 'delivered' %}bg-success{% else %}bg-secondary{% endif %}">
+                    </div>
+                    <div class="timeline-content">
+                        <strong>Entregue</strong>
+                        <small class="text-muted d-block">Pedido concluído</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Itens do Pedido</h5>
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Preço Unitário</th>
+                                    <th>Quantidade</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items.all %}
+                                <tr>
+                                    <td>{{ item.product.name }}</td>
+                                    <td>€{{ item.unit_price }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td><strong>€{{ item.subtotal }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                    <td>
+                                        <h4 class="text-primary mb-0">€{{ order.total_amount }}</h4>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    {% if order.notes %}
+                    <div class="alert alert-info">
+                        <strong><i class="fas fa-sticky-note"></i> Notas:</strong>
+                        <p class="mb-0">{{ order.notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Detalhes do Pedido</h5>
+
+                    <!-- QR Code Section -->
+                    {% if qr_code %}
+                    <div class="text-center mb-4 p-3 bg-light rounded">
+                        <h6 class="fw-bold mb-3">QR Code para Levantamento</h6>
+                        <img src="{{ qr_code }}" alt="QR Code do Pedido" class="img-fluid" style="max-width: 200px;">
+                        <p class="small text-muted mt-2 mb-0">Apresente este QR Code no levantamento</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <strong>Estado Atual:</strong><br>
+                        {% if order.status == 'pending' %}
+                        <span class="badge bg-warning text-dark">Pendente</span>
+                        {% elif order.status == 'confirmed' %}
+                        <span class="badge bg-info">Confirmado</span>
+                        {% elif order.status == 'preparing' %}
+                        <span class="badge bg-primary">Em Preparação</span>
+                        {% elif order.status == 'ready' %}
+                        <span class="badge bg-success">Pronto</span>
+                        {% elif order.status == 'delivered' %}
+                        <span class="badge bg-secondary">Entregue</span>
+                        {% else %}
+                        <span class="badge bg-danger">Cancelado</span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Data de Levantamento:</strong><br>
+                        <i class="fas fa-calendar"></i> {{ order.scheduled_date|date:"d/m/Y" }}<br>
+                        <i class="fas fa-clock"></i> {{ order.scheduled_time|time:"H:i" }}
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Método de Pagamento:</strong><br>
+                        {% if order.payment_method == 'card' %}
+                        <i class="fas fa-credit-card"></i> Cartão Escolar
+                        {% else %}
+                        <i class="fas fa-university"></i> Multibanco
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>Criado em:</strong><br>
+                        {{ order.created_at|date:"d/m/Y H:i" }}
+                    </div>
+
+                    {% if order.is_priority %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-star"></i> <strong>Pedido Prioritário</strong>
+                    </div>
+                    {% endif %}
+
+                    <!-- Opções de Gestão para Staff/Admin -->
+                    {% if not request.GET.from_review and user.is_staff or user.user_type in 'admin,staff' %}
+                    <div class="mb-3">
+                        <strong>Gerir Status do Pedido:</strong>
+                        <form method="post" action="{% url 'bar_app:update_order_status' order.pk %}">
+                            {% csrf_token %}
+                            <div class="mb-2">
+                                <select name="status" class="form-select" id="statusSelect">
+                                    <option value="">Selecione um novo status...</option>
+                                    {% if order.status != 'pending' %}
+                                    <option value="pending">Pendente</option>
+                                    {% endif %}
+                                    {% if order.status != 'confirmed' %}
+                                    <option value="confirmed">Confirmado</option>
+                                    {% endif %}
+                                    {% if order.status != 'preparing' %}
+                                    <option value="preparing">Em Preparação</option>
+                                    {% endif %}
+                                    {% if order.status != 'ready' %}
+                                    <option value="ready">Pronto</option>
+                                    {% endif %}
+                                    {% if order.status != 'delivered' %}
+                                    <option value="delivered">Entregue</option>
+                                    {% endif %}
+                                    {% if order.status != 'cancelled' %}
+                                    <option value="cancelled">Cancelado</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary w-100 mb-2">
+                                <i class="fas fa-save"></i> Atualizar Status
+                            </button>
+                        </form>
+                    </div>
+                    <hr>
+                    {% endif %}
+
+                    {% if order.can_be_cancelled %}
+                    <a href="{% url 'bar_app:cancel_order' order.pk %}" class="btn btn-danger w-100 mb-2"
+                        onclick="return confirm('Tem certeza que deseja cancelar este pedido? Nota: Se faltarem menos de 15 min para o levantamento, será aplicada uma multa de 10%.')">
+                        <i class="fas fa-times"></i> Cancelar Pedido
+                    </a>
+                    <small class="text-muted d-block text-center mb-3">
+                        <i class="fas fa-info-circle"></i> Cancelamentos a menos de 15 min do levantamento têm uma multa de 10%.
+                    </small>
+                    {% endif %}
+
+                    {% if order.status == 'delivered' or order.status == 'cancelled' %}
+                    <hr>
+                    {% if order.review %}
+                    <div class="mt-3">
+                        <h6 class="fw-bold"><i class="fas fa-star text-warning"></i> A sua Avaliação</h6>
+                        <div class="mb-2">
+                            {% for i in "12345" %}
+                            <i
+                                class="fa{% if forloop.counter <= order.review.rating %}s{% else %}r{% endif %} fa-star text-warning"></i>
+                            {% endfor %}
+                        </div>
+                        {% if order.review.comment %}
+                        <p class="small text-muted mb-0 italic">"{{ order.review.comment }}"</p>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <a href="{% url 'bar_app:submit_review' order.pk %}" class="btn btn-primary w-100">
+                        <i class="fas fa-star"></i> Avaliar Pedido
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+    }
+
+    .timeline-item {
+        display: flex;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .timeline-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 40px;
+        width: 2px;
+        height: 30px;
+        background-color: #dee2e6;
+    }
+
+    .timeline-item.active:not(:last-child)::after {
+        background-color: #28a745;
+    }
+
+    .timeline-marker {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        margin-right: 15px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .timeline-content {
+        flex-grow: 1;
+        padding-top: 5px;
+    }
+</style>
+{% endblock %}
