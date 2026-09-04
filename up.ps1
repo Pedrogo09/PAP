@@ -2,7 +2,8 @@
 # Sincroniza o projeto com o GitHub e atualiza as percentagens de linguagens no README.
 # Uso:  powershell -ExecutionPolicy Bypass -File .\up.ps1
 
-$ErrorActionPreference = 'Stop'
+# 'Continue': com 'Stop', qualquer texto que o git escreva no stderr (redirecionado) aborta o script.
+$ErrorActionPreference = 'Continue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Set-Location -Path $PSScriptRoot
 
@@ -29,8 +30,8 @@ if (-not (Test-Path '.git')) {
     git branch -M main
 }
 
-git remote get-url origin *> $null
-if ($LASTEXITCODE -ne 0) {
+$remotes = @(git remote)
+if ($remotes -notcontains 'origin') {
     git remote add origin $Repo
 } else {
     git remote set-url origin $Repo
