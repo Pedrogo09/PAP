@@ -1,4 +1,4 @@
-# 🍽️ Bar Escolar - Sistema de Gestão (PAP)
+﻿# 🍽️ Bar Escolar - Sistema de Gestão (PAP)
 
 Sistema de gestão de bar escolar desenvolvido em **Django 5.2**, com suporte a pedidos online, pagamentos por saldo, gestão de stock e relatórios.
 
@@ -6,15 +6,15 @@ Sistema de gestão de bar escolar desenvolvido em **Django 5.2**, com suporte a 
 
 ## 📊 Linguagens do Projeto
 
-* 🟠 **HTML:** 44.3%
+**HTML:** 40%
 
-* 🐍 **Python:** 43.2%
+**Python:** 47.1%
 
-* 🎨 **CSS:** 5.0%
+**CSS:** 4.1%
 
-* 🔵 **TypeScript:** 5.8%
+**TypeScript:** 4.8%
 
-* ⚪ **Outros:** 1.7%
+**Outros:** 4%
 
 ---
 
@@ -109,3 +109,4 @@ git push
 ---
 
 **Nota:** Toda a gestão pode ser feita através do `/dashboard` ou do painel `/admin` padrão.
+
