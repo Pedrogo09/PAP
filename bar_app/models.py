@@ -65,6 +65,8 @@ class User(AbstractUser):
     
     @property
     def logo_avatar(self):
+        if self.user_type == 'admin':
+            return "/static/images/admin_logo.jpg"
         return "/static/images/logo.png"
 
     email_verified = models.BooleanField(default=False)
