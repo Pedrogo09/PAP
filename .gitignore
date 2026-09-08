@@ -9,7 +9,21 @@ __pycache__/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+db.sqlite3.backup*
 staticfiles/
+
+# Backups da base de dados (contêm dados reais de utilizadores)
+backups/
+
+# Media privada dos utilizadores (fotos, recibos - dados sensíveis)
+media/users/
+media/receipts/
+
+# Ficheiros com credenciais/dados sensíveis
+contas_criadas.txt
+
+# Ficheiros de log/output irrelevantes
+pip_output.txt
 
 # Environment variables
 .env
