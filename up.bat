@@ -5,6 +5,31 @@ chcp 65001 >nul
 
 set "REPO=https://github.com/Pedrogo09/PAP.git"
 
+echo.
+echo ===================================================
+echo   BACKUP DA BASE DE DADOS
+echo ===================================================
+echo.
+
+if not exist "backups" mkdir backups
+
+for /f "tokens=1-3 delims=/ " %%a in ('date /t') do set "date=%%c%%a%%b"
+for /f "tokens=1-2 delims=: " %%a in ('time /t') do set "time=%%a%%b"
+
+set "backup_file=backups\pap_backup_%date%_%time%.sqlite3"
+
+echo [INFO] A copiar base de dados para %backup_file%...
+copy "db.sqlite3" "%backup_file%" >nul
+
+if errorlevel 1 (
+    echo [ERRO] Falha ao copiar base de dados.
+    pause
+    exit /b 1
+)
+
+echo [SUCESSO] Backup criado: %backup_file%
+echo.
+
 echo ===================================================
 echo   ATUALIZAR PROJETO NO GITHUB - BAR ESCOLAR PAP
 echo ===================================================
